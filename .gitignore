@@ -1,0 +1,34 @@
+# Ambiente virtual
+.venv/
+
+# Cache Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Arquivos temporários
+temp/
+*.tmp
+
+# PDFs e imagens de testes/dados
+*.pdf
+*.png
+*.jpg
+*.jpeg
+*.webp
+
+# Uploads e resultados locais
+uploads/
+resultados/
+
+# Credenciais e segredos
+credentials.json
+token.json
+*.env
+.env
+
+# Arquivos do sistema
+.DS_Store
+Thumbs.db
+# Fichas geradas localmente pelo aplicativo
+fichas/
