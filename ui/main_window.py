@@ -5,7 +5,8 @@ import customtkinter as ctk
 
 from tkinter import (
     filedialog,
-    messagebox
+    messagebox,
+    ttk
 )
 
 from PIL import Image
@@ -42,8 +43,8 @@ class MainWindow(ctk.CTk):
         )
 
         self.minsize(
-            1200,
-            750
+            1000,
+            600
         )
 
         ctk.set_appearance_mode(
@@ -464,8 +465,8 @@ class MainWindow(ctk.CTk):
         self.digitalizacao_frame.pack(
             fill="both",
             expand=True,
-            padx=10,
-            pady=10
+            padx=8,
+            pady=8
         )
 
         # ======================================================
@@ -478,19 +479,19 @@ class MainWindow(ctk.CTk):
 
         top.pack(
             fill="x",
-            padx=10,
-            pady=(10, 5)
+            padx=8,
+            pady=(8, 4)
         )
 
         ctk.CTkButton(
             top,
             text="← Menu",
-            width=100,
+            width=90,
             command=self.criar_menu_principal
         ).pack(
             side="left",
-            padx=10,
-            pady=10
+            padx=8,
+            pady=6
         )
 
         titulo = (
@@ -505,12 +506,12 @@ class MainWindow(ctk.CTk):
             text=titulo,
             font=(
                 "Segoe UI",
-                22,
+                20,
                 "bold"
             )
         ).pack(
             side="left",
-            padx=20
+            padx=12
         )
 
         # ======================================================
@@ -524,24 +525,36 @@ class MainWindow(ctk.CTk):
         corpo.pack(
             fill="both",
             expand=True,
-            padx=10,
-            pady=5
+            padx=8,
+            pady=4
         )
 
         # ======================================================
-        # VISUALIZADOR
+        # PAINÉIS REDIMENSIONÁVEIS
+        #
+        # PDF e formulário ficam lado a lado.
+        # O usuário pode arrastar o divisor.
+        # Posição inicial aproximada: 40% / 60%.
+        # ======================================================
+
+        paned = ttk.Panedwindow(
+            corpo,
+            orient="horizontal"
+        )
+
+        paned.pack(
+            fill="both",
+            expand=True,
+            padx=6,
+            pady=6
+        )
+
+        # ======================================================
+        # VISUALIZADOR PDF
         # ======================================================
 
         pdf_frame = ctk.CTkFrame(
-            corpo
-        )
-
-        pdf_frame.pack(
-            side="left",
-            fill="both",
-            expand=True,
-            padx=(10, 5),
-            pady=10
+            paned
         )
 
         self.viewer = PDFViewer(
@@ -551,87 +564,114 @@ class MainWindow(ctk.CTk):
         self.viewer.pack(
             expand=True,
             fill="both",
-            padx=20,
-            pady=20
+            padx=8,
+            pady=8
         )
 
         # ======================================================
-        # PAINEL
+        # PAINEL DIREITO
         # ======================================================
 
         side_panel = ctk.CTkFrame(
-            corpo,
-            width=350
+            paned
         )
 
-        side_panel.pack(
-            side="right",
-            fill="y",
-            padx=(5, 10),
-            pady=10
+        paned.add(
+            pdf_frame,
+            weight=2
         )
 
-        side_panel.pack_propagate(
-            False
+        paned.add(
+            side_panel,
+            weight=3
         )
+
+        # Posição inicial do divisor em aproximadamente 40%.
+        def posicionar_divisor_inicial():
+
+            largura = paned.winfo_width()
+
+            if largura > 1:
+
+                paned.sashpos(
+                    0,
+                    int(largura * 0.40)
+                )
+
+        self.after_idle(
+            posicionar_divisor_inicial
+        )
+
+        # ======================================================
+        # AÇÕES
+        #
+        # Os botões ficam em duas colunas para economizar altura
+        # e liberar mais espaço para o formulário em notebooks.
+        # ======================================================
 
         ctk.CTkLabel(
             side_panel,
             text="Ações",
             font=(
                 "Segoe UI",
-                18,
+                17,
                 "bold"
             )
         ).pack(
-            pady=(15, 10)
+            pady=(8, 4)
+        )
+
+        actions_frame = ctk.CTkFrame(
+            side_panel,
+            fg_color="transparent"
+        )
+
+        actions_frame.pack(
+            fill="x",
+            padx=10,
+            pady=(0, 4)
+        )
+
+        actions_frame.grid_columnconfigure(
+            0,
+            weight=1
+        )
+
+        actions_frame.grid_columnconfigure(
+            1,
+            weight=1
         )
 
         # ======================================================
         # MODO VISUALIZAÇÃO
-        #
-        # Neste modo NÃO criamos:
-        # - Selecionar ficha PDF
-        # - Abrir ficha ativa
-        # - FormPanel
-        #
-        # Somente:
-        # - Onde devo marcar?
-        # - Salvar PDF localmente
-        # - Página anterior
-        # - Próxima página
         # ======================================================
 
         if modo_visualizacao:
 
-            # --------------------------------------------------
-            # ONDE DEVO MARCAR
-            # --------------------------------------------------
-
             ctk.CTkButton(
-                side_panel,
+                actions_frame,
                 text="Onde devo marcar?",
                 command=self.visualizar_area_omr
-            ).pack(
-                fill="x",
-                padx=20,
-                pady=5
+            ).grid(
+                row=0,
+                column=0,
+                sticky="ew",
+                padx=4,
+                pady=4
             )
 
-            # --------------------------------------------------
-            # SALVAR PDF LOCALMENTE
-            # --------------------------------------------------
-
             self.planilha_button = ctk.CTkButton(
-                side_panel,
+                actions_frame,
                 text="Gerar planilha e colocar em produção",
                 command=self.gerar_planilha_da_ficha
             )
 
-            self.planilha_button.pack(
-                fill="x",
-                padx=20,
-                pady=5
+            self.planilha_button.grid(
+                row=0,
+                column=1,
+                sticky="ew",
+                padx=4,
+                pady=4
             )
 
             dados_visualizados = (
@@ -650,18 +690,17 @@ class MainWindow(ctk.CTk):
                     state="disabled"
                 )
 
-            # --------------------------------------------------
-            # SALVAR PDF LOCALMENTE
-            # --------------------------------------------------
-
             ctk.CTkButton(
-                side_panel,
+                actions_frame,
                 text="Salvar PDF localmente",
                 command=self.exportar_pdf_visualizacao
-            ).pack(
-                fill="x",
-                padx=20,
-                pady=5
+            ).grid(
+                row=1,
+                column=0,
+                columnspan=2,
+                sticky="ew",
+                padx=4,
+                pady=4
             )
 
         else:
@@ -670,34 +709,30 @@ class MainWindow(ctk.CTk):
             # MODO DIGITALIZAÇÃO NORMAL
             # ==================================================
 
-            # --------------------------------------------------
-            # SELECIONAR PDF
-            # --------------------------------------------------
-
             ctk.CTkButton(
-                side_panel,
+                actions_frame,
                 text="Selecionar ficha PDF",
                 command=self.selecionar_pdf
-            ).pack(
-                fill="x",
-                padx=20,
-                pady=5
+            ).grid(
+                row=0,
+                column=0,
+                sticky="ew",
+                padx=4,
+                pady=4
             )
 
-            # --------------------------------------------------
-            # ABRIR FICHA ATIVA
-            # --------------------------------------------------
-
             self.open_generated_button = ctk.CTkButton(
-                side_panel,
+                actions_frame,
                 text="Abrir ficha ativa",
                 command=self.abrir_pdf_gerado
             )
 
-            self.open_generated_button.pack(
-                fill="x",
-                padx=20,
-                pady=5
+            self.open_generated_button.grid(
+                row=0,
+                column=1,
+                sticky="ew",
+                padx=4,
+                pady=4
             )
 
             if not self.pdf_gerado_path:
@@ -706,20 +741,18 @@ class MainWindow(ctk.CTk):
                     state="disabled"
                 )
 
-            # --------------------------------------------------
-            # ONDE DEVO MARCAR
-            # --------------------------------------------------
-
             self.area_omr_button = ctk.CTkButton(
-                side_panel,
+                actions_frame,
                 text="Onde devo marcar?",
                 command=self.visualizar_area_omr
             )
 
-            self.area_omr_button.pack(
-                fill="x",
-                padx=20,
-                pady=5
+            self.area_omr_button.grid(
+                row=1,
+                column=0,
+                sticky="ew",
+                padx=4,
+                pady=4
             )
 
             if not self.pdf_gerado_path:
@@ -728,40 +761,37 @@ class MainWindow(ctk.CTk):
                     state="disabled"
                 )
 
-            # --------------------------------------------------
-            # LER OMR
-            # --------------------------------------------------
-
             self.process_omr_button = ctk.CTkButton(
-                side_panel,
+                actions_frame,
                 text="Ler ficha (OMR)",
                 command=self.processar_omr
             )
 
-            self.process_omr_button.pack(
-                fill="x",
-                padx=20,
-                pady=5
+            self.process_omr_button.grid(
+                row=1,
+                column=1,
+                sticky="ew",
+                padx=4,
+                pady=4
             )
 
             self.process_omr_button.configure(
                 state="disabled"
             )
 
-            # --------------------------------------------------
-            # EXPORTAR PDF
-            # --------------------------------------------------
-
             self.export_pdf_button = ctk.CTkButton(
-                side_panel,
+                actions_frame,
                 text="Salvar PDF localmente",
                 command=self.exportar_pdf_ativo
             )
 
-            self.export_pdf_button.pack(
-                fill="x",
-                padx=20,
-                pady=5
+            self.export_pdf_button.grid(
+                row=2,
+                column=0,
+                columnspan=2,
+                sticky="ew",
+                padx=4,
+                pady=4
             )
 
             if not self.pdf_gerado_path:
@@ -771,66 +801,123 @@ class MainWindow(ctk.CTk):
                 )
 
         # ======================================================
-        # NOME DO ARQUIVO
+        # AÇÃO PRINCIPAL — SALVAR RESULTADO
+        #
+        # Fica fora do FormPanel e acima das informações do PDF
+        # para permanecer sempre acessível em telas menores.
         # ======================================================
 
-        self.file_name = ctk.CTkLabel(
+        if not modo_visualizacao:
+
+            self.save_result_button = ctk.CTkButton(
+                side_panel,
+                text="Salvar resultado",
+                height=42,
+                font=(
+                    "Segoe UI",
+                    15,
+                    "bold"
+                ),
+                command=self.salvar_resultado_atual
+            )
+
+            self.save_result_button.pack(
+                fill="x",
+                padx=14,
+                pady=(4, 6)
+            )
+
+        # ======================================================
+        # INFORMAÇÕES DO PDF
+        # ======================================================
+
+        info_frame = ctk.CTkFrame(
             side_panel,
+            fg_color="transparent"
+        )
+
+        info_frame.pack(
+            fill="x",
+            padx=10,
+            pady=(2, 2)
+        )
+
+        self.file_name = ctk.CTkLabel(
+            info_frame,
             text="Nenhum PDF selecionado",
-            wraplength=300
+            wraplength=500
         )
 
         self.file_name.pack(
-            pady=(20, 5)
+            fill="x",
+            pady=(2, 0)
         )
 
-        # ======================================================
-        # PÁGINA
-        # ======================================================
-
         self.page_label = ctk.CTkLabel(
-            side_panel,
+            info_frame,
             text="Página 0 de 0"
         )
 
         self.page_label.pack(
-            pady=5
+            fill="x",
+            pady=(0, 2)
         )
 
-        # ------------------------------------------------------
-        # PÁGINA ANTERIOR
-        # ------------------------------------------------------
+        # ======================================================
+        # NAVEGAÇÃO DE PÁGINAS
+        # ======================================================
+
+        nav_frame = ctk.CTkFrame(
+            side_panel,
+            fg_color="transparent"
+        )
+
+        nav_frame.pack(
+            fill="x",
+            padx=10,
+            pady=(2, 4)
+        )
+
+        nav_frame.grid_columnconfigure(
+            0,
+            weight=1
+        )
+
+        nav_frame.grid_columnconfigure(
+            1,
+            weight=1
+        )
 
         ctk.CTkButton(
-            side_panel,
-            text="Página Anterior",
+            nav_frame,
+            text="← Página anterior",
             command=self.pagina_anterior
-        ).pack(
-            fill="x",
-            padx=20,
-            pady=5
+        ).grid(
+            row=0,
+            column=0,
+            sticky="ew",
+            padx=(4, 2),
+            pady=2
         )
 
-        # ------------------------------------------------------
-        # PRÓXIMA PÁGINA
-        # ------------------------------------------------------
-
         ctk.CTkButton(
-            side_panel,
-            text="Próxima Página",
+            nav_frame,
+            text="Próxima página →",
             command=self.proxima_pagina
-        ).pack(
-            fill="x",
-            padx=20,
-            pady=5
+        ).grid(
+            row=0,
+            column=1,
+            sticky="ew",
+            padx=(2, 4),
+            pady=2
         )
 
         # ======================================================
         # FORMULÁRIO
         #
-        # Só existe na digitalização normal.
-        # Na visualização da ficha ativa não faz sentido
-        # mostrar identificação nem respostas abertas.
+        # O FormPanel contém apenas os campos e seu scroll.
+        # A ação principal "Salvar resultado" fica acima, fora do
+        # formulário, para permanecer acessível em telas menores.
         # ======================================================
 
         if not modo_visualizacao:
@@ -843,7 +930,8 @@ class MainWindow(ctk.CTk):
             self.form_panel.pack(
                 fill="both",
                 expand=True,
-                pady=10
+                padx=10,
+                pady=(4, 6)
             )
 
         # ======================================================
@@ -865,15 +953,11 @@ class MainWindow(ctk.CTk):
         self.status.pack(
             fill="x",
             padx=10,
-            pady=(0, 5)
+            pady=(0, 4)
         )
 
         # ======================================================
         # MAPA
-        #
-        # Só carregamos o mapa quando existe FormPanel.
-        # No modo visualização, não há formulário para
-        # configurar.
         # ======================================================
 
         if not modo_visualizacao:
@@ -2680,6 +2764,28 @@ class MainWindow(ctk.CTk):
             registro[cabecalho] = valor
 
         return registro
+
+    # ==========================================================
+    # SALVAR PESQUISA
+    # ==========================================================
+
+    def salvar_resultado_atual(
+        self
+    ):
+
+        if not hasattr(
+            self,
+            "form_panel"
+        ):
+
+            messagebox.showwarning(
+                "Salvar resultado",
+                "O formulário de preenchimento não está disponível."
+            )
+
+            return
+
+        self.form_panel.salvar()
 
     # ==========================================================
     # SALVAR PESQUISA

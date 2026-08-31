@@ -135,21 +135,6 @@ class FormPanel(ctk.CTkFrame):
             pady=(0, 8)
         )
 
-        # ======================================================
-        # SALVAR
-        # ======================================================
-
-        self.save_button = ctk.CTkButton(
-            self,
-            text="Salvar resultado",
-            command=self.salvar
-        )
-
-        self.save_button.pack(
-            fill="x",
-            padx=20,
-            pady=15
-        )
 
     # ==========================================================
     # CAMPOS DE IDENTIFICAÇÃO

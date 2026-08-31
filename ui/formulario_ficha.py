@@ -2,7 +2,7 @@ import os
 
 import customtkinter as ctk
 
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, ttk
 
 
 class SecaoEditor(ctk.CTkFrame):
@@ -819,7 +819,7 @@ class FormularioFicha(ctk.CTkFrame):
     def criar_interface(self):
 
         self.grid_rowconfigure(
-            5,
+            1,
             weight=1
         )
 
@@ -840,8 +840,8 @@ class FormularioFicha(ctk.CTkFrame):
             row=0,
             column=0,
             sticky="ew",
-            padx=15,
-            pady=(15, 10)
+            padx=10,
+            pady=(10, 5)
         )
 
         header.grid_columnconfigure(
@@ -861,7 +861,7 @@ class FormularioFicha(ctk.CTkFrame):
             row=0,
             column=0,
             padx=15,
-            pady=15
+            pady=10
         )
 
         ctk.CTkButton(
@@ -873,7 +873,88 @@ class FormularioFicha(ctk.CTkFrame):
             row=0,
             column=1,
             sticky="e",
-            padx=15
+            padx=15,
+            pady=10
+        )
+
+        # ------------------------------------------------------
+        # ÁREA PRINCIPAL REDIMENSIONÁVEL
+        # ------------------------------------------------------
+
+        paned = ttk.Panedwindow(
+            self,
+            orient="horizontal"
+        )
+
+        paned.grid(
+            row=1,
+            column=0,
+            sticky="nsew",
+            padx=10,
+            pady=5
+        )
+
+        painel_configuracao = ctk.CTkFrame(
+            paned
+        )
+
+        painel_estrutura = ctk.CTkFrame(
+            paned
+        )
+
+        paned.add(
+            painel_configuracao,
+            weight=2
+        )
+
+        paned.add(
+            painel_estrutura,
+            weight=3
+        )
+
+        def posicionar_divisor_inicial():
+
+            largura = paned.winfo_width()
+
+            if largura > 1:
+
+                paned.sashpos(
+                    0,
+                    int(largura * 0.42)
+                )
+
+        self.after_idle(
+            posicionar_divisor_inicial
+        )
+
+        # ======================================================
+        # COLUNA ESQUERDA - CONFIGURAÇÃO
+        # ======================================================
+
+        painel_configuracao.grid_columnconfigure(
+            0,
+            weight=1
+        )
+
+        painel_configuracao.grid_rowconfigure(
+            2,
+            weight=1
+        )
+
+        ctk.CTkLabel(
+            painel_configuracao,
+            text="Configuração",
+            font=(
+                "Segoe UI",
+                18,
+                "bold"
+            )
+        ).grid(
+            row=0,
+            column=0,
+            sticky="w",
+            padx=15,
+            pady=(12, 6)
         )
 
         # ------------------------------------------------------
@@ -881,15 +962,15 @@ class FormularioFicha(ctk.CTkFrame):
         # ------------------------------------------------------
 
         dados_frame = ctk.CTkFrame(
-            self
+            painel_configuracao
         )
 
         dados_frame.grid(
             row=1,
             column=0,
             sticky="ew",
-            padx=15,
-            pady=(0, 10)
+            padx=10,
+            pady=(0, 8)
         )
 
         dados_frame.grid_columnconfigure(
@@ -904,8 +985,8 @@ class FormularioFicha(ctk.CTkFrame):
             row=0,
             column=0,
             sticky="w",
-            padx=15,
-            pady=(15, 5)
+            padx=(10, 6),
+            pady=(10, 4)
         )
 
         self.nome_pesquisa = ctk.CTkEntry(
@@ -917,8 +998,8 @@ class FormularioFicha(ctk.CTkFrame):
             row=0,
             column=1,
             sticky="ew",
-            padx=15,
-            pady=(15, 5)
+            padx=(6, 10),
+            pady=(10, 4)
         )
 
         ctk.CTkLabel(
@@ -928,8 +1009,8 @@ class FormularioFicha(ctk.CTkFrame):
             row=1,
             column=0,
             sticky="w",
-            padx=15,
-            pady=(5, 5)
+            padx=(10, 6),
+            pady=4
         )
 
         self.titulo = ctk.CTkEntry(
@@ -941,8 +1022,8 @@ class FormularioFicha(ctk.CTkFrame):
             row=1,
             column=1,
             sticky="ew",
-            padx=15,
-            pady=(5, 5)
+            padx=(6, 10),
+            pady=4
         )
 
         # ------------------------------------------------------
@@ -956,8 +1037,8 @@ class FormularioFicha(ctk.CTkFrame):
             row=2,
             column=0,
             sticky="w",
-            padx=15,
-            pady=(5, 5)
+            padx=(10, 6),
+            pady=4
         )
 
         logo_frame = ctk.CTkFrame(
@@ -969,8 +1050,8 @@ class FormularioFicha(ctk.CTkFrame):
             row=2,
             column=1,
             sticky="ew",
-            padx=15,
-            pady=(5, 5)
+            padx=(6, 10),
+            pady=4
         )
 
         logo_frame.grid_columnconfigure(
@@ -987,34 +1068,37 @@ class FormularioFicha(ctk.CTkFrame):
         self.logo_nome.grid(
             row=0,
             column=0,
+            columnspan=2,
             sticky="ew",
-            padx=(0, 8)
+            pady=(0, 4)
         )
 
         self.logo_button = ctk.CTkButton(
             logo_frame,
             text="Escolher PNG",
-            width=130,
+            width=110,
             command=self.selecionar_logo
         )
 
         self.logo_button.grid(
-            row=0,
-            column=1,
+            row=1,
+            column=0,
+            sticky="w",
             padx=(0, 5)
         )
 
         self.remover_logo_button = ctk.CTkButton(
             logo_frame,
             text="Remover",
-            width=90,
+            width=80,
             command=self.remover_logo,
             state="disabled"
         )
 
         self.remover_logo_button.grid(
-            row=0,
-            column=2
+            row=1,
+            column=1,
+            sticky="e"
         )
 
         # ------------------------------------------------------
@@ -1023,13 +1107,13 @@ class FormularioFicha(ctk.CTkFrame):
 
         ctk.CTkLabel(
             dados_frame,
-            text="Tamanho da fonte:"
+            text="Fonte:"
         ).grid(
             row=3,
             column=0,
             sticky="w",
-            padx=15,
-            pady=(5, 15)
+            padx=(10, 6),
+            pady=(4, 10)
         )
 
         fonte_frame = ctk.CTkFrame(
@@ -1040,15 +1124,20 @@ class FormularioFicha(ctk.CTkFrame):
         fonte_frame.grid(
             row=3,
             column=1,
-            sticky="w",
-            padx=15,
-            pady=(5, 15)
+            sticky="ew",
+            padx=(6, 10),
+            pady=(4, 10)
+        )
+
+        fonte_frame.grid_columnconfigure(
+            1,
+            weight=1
         )
 
         self.tamanho_fonte_combo = ctk.CTkComboBox(
             fonte_frame,
             values=self.TAMANHOS_FONTE,
-            width=120,
+            width=100,
             state="readonly",
             command=self.alterar_tamanho_fonte
         )
@@ -1057,16 +1146,21 @@ class FormularioFicha(ctk.CTkFrame):
             f"{self.TAMANHO_FONTE_PADRAO} pt"
         )
 
-        self.tamanho_fonte_combo.pack(
-            side="left"
+        self.tamanho_fonte_combo.grid(
+            row=0,
+            column=0,
+            sticky="w"
         )
 
         ctk.CTkLabel(
             fonte_frame,
-            text="Use um tamanho menor para fichas com muitas perguntas."
-        ).pack(
-            side="left",
-            padx=12
+            text="Menor = mais perguntas.",
+            anchor="w"
+        ).grid(
+            row=0,
+            column=1,
+            sticky="w",
+            padx=(8, 0)
         )
 
         # ------------------------------------------------------
@@ -1074,14 +1168,14 @@ class FormularioFicha(ctk.CTkFrame):
         # ------------------------------------------------------
 
         identificacao = ctk.CTkFrame(
-            self
+            painel_configuracao
         )
 
         identificacao.grid(
             row=2,
             column=0,
-            sticky="ew",
-            padx=15,
+            sticky="nsew",
+            padx=10,
             pady=(0, 10)
         )
 
@@ -1090,47 +1184,49 @@ class FormularioFicha(ctk.CTkFrame):
             weight=1
         )
 
+        identificacao.grid_rowconfigure(
+            2,
+            weight=1
+        )
+
         ctk.CTkLabel(
             identificacao,
             text="Campos de identificação",
             font=(
                 "Segoe UI",
-                18,
+                16,
                 "bold"
             )
         ).grid(
             row=0,
             column=0,
             sticky="w",
-            padx=15,
-            pady=(12, 3)
+            padx=12,
+            pady=(10, 2)
         )
 
         ctk.CTkLabel(
             identificacao,
-            text=(
-                "Defina quais informações o usuário deverá "
-                "preencher ao digitalizar esta ficha."
-            )
+            text="Preenchidos durante a digitalização.",
+            justify="left"
         ).grid(
             row=1,
             column=0,
             sticky="w",
-            padx=15,
-            pady=(0, 8)
+            padx=12,
+            pady=(0, 6)
         )
 
         self.identificacao_scroll = ctk.CTkScrollableFrame(
-            identificacao,
-            height=135
+            identificacao
         )
 
         self.identificacao_scroll.grid(
             row=2,
             column=0,
-            sticky="ew",
-            padx=15,
-            pady=5
+            sticky="nsew",
+            padx=12,
+            pady=4
         )
 
         self.adicionar_campo_button = ctk.CTkButton(
@@ -1144,16 +1240,26 @@ class FormularioFicha(ctk.CTkFrame):
             row=3,
             column=0,
             sticky="w",
-            padx=15,
-            pady=(5, 12)
+            padx=12,
+            pady=(5, 10)
         )
 
-        # ------------------------------------------------------
-        # ESTRUTURA
-        # ------------------------------------------------------
+        # ======================================================
+        # COLUNA DIREITA - ESTRUTURA DA FICHA
+        # ======================================================
+
+        painel_estrutura.grid_columnconfigure(
+            0,
+            weight=1
+        )
+
+        painel_estrutura.grid_rowconfigure(
+            2,
+            weight=1
+        )
 
         ctk.CTkLabel(
-            self,
+            painel_estrutura,
             text="Estrutura da ficha",
             font=(
                 "Segoe UI",
@@ -1161,23 +1267,23 @@ class FormularioFicha(ctk.CTkFrame):
                 "bold"
             )
         ).grid(
-            row=3,
+            row=0,
             column=0,
             sticky="w",
-            padx=20,
-            pady=(5, 5)
+            padx=15,
+            pady=(12, 6)
         )
 
         controles = ctk.CTkFrame(
-            self,
+            painel_estrutura,
             fg_color="transparent"
         )
 
         controles.grid(
-            row=4,
+            row=1,
             column=0,
             sticky="ew",
-            padx=15,
+            padx=10,
             pady=(0, 5)
         )
 
@@ -1198,24 +1304,20 @@ class FormularioFicha(ctk.CTkFrame):
             side="left"
         )
 
-        # ------------------------------------------------------
-        # SCROLL PRINCIPAL
-        # ------------------------------------------------------
-
         self.scroll = ctk.CTkScrollableFrame(
-            self
+            painel_estrutura
         )
 
         self.scroll.grid(
-            row=5,
+            row=2,
             column=0,
             sticky="nsew",
-            padx=15,
-            pady=5
+            padx=10,
+            pady=(0, 10)
         )
 
         # ------------------------------------------------------
-        # RODAPÉ
+        # RODAPÉ FIXO
         # ------------------------------------------------------
 
         rodape = ctk.CTkFrame(
@@ -1223,11 +1325,11 @@ class FormularioFicha(ctk.CTkFrame):
         )
 
         rodape.grid(
-            row=6,
+            row=2,
             column=0,
             sticky="ew",
-            padx=15,
-            pady=(5, 15)
+            padx=10,
+            pady=(5, 10)
         )
 
         self.status = ctk.CTkLabel(
@@ -1238,7 +1340,7 @@ class FormularioFicha(ctk.CTkFrame):
         self.status.pack(
             side="left",
             padx=15,
-            pady=10
+            pady=8
         )
 
         self.gerar_button = ctk.CTkButton(
@@ -1250,7 +1352,7 @@ class FormularioFicha(ctk.CTkFrame):
         self.gerar_button.pack(
             side="right",
             padx=15,
-            pady=10
+            pady=8
         )
 
         self.modo_edicao_label = ctk.CTkLabel(
