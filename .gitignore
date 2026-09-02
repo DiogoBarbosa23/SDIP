@@ -30,5 +30,11 @@ token.json
 # Arquivos do sistema
 .DS_Store
 Thumbs.db
+
 # Fichas geradas localmente pelo aplicativo
 fichas/
+
+# PyInstaller
+build/
+dist/
+*.spec
