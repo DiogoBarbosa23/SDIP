@@ -17,8 +17,9 @@ temp/
 *.jpeg
 *.webp
 
-# Imagem oficial do manual
+# Arquivos oficiais do manual
 !docs/manual_rapido_sdip.png
+!docs/MANUAL_USUARIO_SDIP.pdf
 
 # Uploads e resultados locais
 uploads/
