@@ -15,6 +15,10 @@ from engine.pdf_reader import PDFReader
 from engine.gerador_ficha import GeradorFicha
 from engine.fichas_manager import FichasManager
 from engine.leitor import LeitorFicha
+from engine.google_sheets_webapp import (
+    GoogleSheetsWebApp,
+    GoogleSheetsWebAppErro
+)
 from engine.pacote_pesquisa import (
     ErroPacotePesquisa,
     PacotePesquisa
@@ -889,13 +893,35 @@ class MainWindow(ctk.CTk):
                 or {}
             )
 
+            tipo_destino = dados_visualizados.get(
+                "tipo_destino"
+            )
+
             caminho_planilha = dados_visualizados.get(
                 "planilha_resultados_path"
             )
 
-            if caminho_planilha and os.path.isfile(caminho_planilha):
+            google_url = dados_visualizados.get(
+                "google_webapp_url"
+            )
+
+            google_chave = dados_visualizados.get(
+                "google_chave_integracao"
+            )
+
+            if (
+                tipo_destino == "google"
+                and google_url
+                and google_chave
+            ):
                 self.planilha_button.configure(
-                    text="Planilha da pesquisa já configurada",
+                    text="Google Sheets já configurado",
+                    state="disabled"
+                )
+
+            elif caminho_planilha and os.path.isfile(caminho_planilha):
+                self.planilha_button.configure(
+                    text="Planilha local já configurada",
                     state="disabled"
                 )
 
@@ -1617,6 +1643,10 @@ class MainWindow(ctk.CTk):
                 )
                 dados["planilha_resultados_path"] = None
                 dados["planilha_cabecalhos"] = []
+                dados["tipo_destino"] = None
+                dados["google_webapp_url"] = None
+                dados["google_chave_integracao"] = None
+                dados["google_cabecalhos"] = []
             else:
                 dados["status_producao"] = (
                     FichasManager.STATUS_RASCUNHO
@@ -1624,6 +1654,10 @@ class MainWindow(ctk.CTk):
                 dados["versao"] = 1
                 dados["planilha_resultados_path"] = None
                 dados["planilha_cabecalhos"] = []
+                dados["tipo_destino"] = None
+                dados["google_webapp_url"] = None
+                dados["google_chave_integracao"] = None
+                dados["google_cabecalhos"] = []
 
             # --------------------------------------------------
             # SALVAR PERMANENTEMENTE
@@ -2041,12 +2075,12 @@ class MainWindow(ctk.CTk):
             )
 
     # ==========================================================
-    # GERAR PLANILHA DA FICHA
+    # CONFIGURAR DESTINO DOS RESULTADOS
     # ==========================================================
 
     def gerar_planilha_da_ficha(self):
 
-        # Em modo de visualização, a planilha pertence à ficha exibida.
+        # Em modo de visualização, a configuração pertence à ficha exibida.
         # No restante da aplicação, usamos a ficha ativa.
         ficha_id = (
             self.ficha_visualizada_id
@@ -2056,12 +2090,161 @@ class MainWindow(ctk.CTk):
 
         if not ficha_id:
             messagebox.showwarning(
-                "Planilha",
-                "Nenhuma ficha disponível para gerar a planilha."
+                "Destino dos resultados",
+                "Nenhuma ficha disponível para configurar."
             )
             return
 
-        ficha = self.fichas_manager.carregar_ficha(ficha_id)
+        ficha = self.fichas_manager.carregar_ficha(
+            ficha_id
+        )
+
+        if not ficha:
+            messagebox.showwarning(
+                "Destino dos resultados",
+                "Não foi possível carregar a ficha selecionada."
+            )
+            return
+
+        dados_ficha = self._copiar_dados_ficha(
+            ficha["dados"]
+        )
+
+        tipo_destino = dados_ficha.get(
+            "tipo_destino"
+        )
+
+        if tipo_destino == "google":
+            if (
+                dados_ficha.get("google_webapp_url")
+                and dados_ficha.get("google_chave_integracao")
+            ):
+                messagebox.showinfo(
+                    "Google Sheets",
+                    "Esta pesquisa já está vinculada ao Google Sheets."
+                )
+                return
+
+        caminho_planilha = dados_ficha.get(
+            "planilha_resultados_path"
+        )
+
+        if caminho_planilha and os.path.isfile(
+            caminho_planilha
+        ):
+            messagebox.showinfo(
+                "Planilha local",
+                "Esta pesquisa já possui uma planilha local configurada.\n\n"
+                f"{caminho_planilha}"
+            )
+            return
+
+        self._abrir_seletor_destino_resultados(
+            ficha_id
+        )
+
+    # ==========================================================
+    # SELECIONAR DESTINO
+    # ==========================================================
+
+    def _abrir_seletor_destino_resultados(
+        self,
+        ficha_id
+    ):
+
+        janela = ctk.CTkToplevel(
+            self
+        )
+
+        janela.title(
+            "Destino dos resultados"
+        )
+
+        janela.geometry(
+            "520x280"
+        )
+
+        janela.resizable(
+            False,
+            False
+        )
+
+        janela.transient(
+            self
+        )
+
+        ctk.CTkLabel(
+            janela,
+            text="Onde os resultados desta pesquisa serão salvos?",
+            font=(
+                "Segoe UI",
+                18,
+                "bold"
+            )
+        ).pack(
+            pady=(30, 8)
+        )
+
+        ctk.CTkLabel(
+            janela,
+            text=(
+                "A planilha local continua funcionando como antes.\n"
+                "Google Sheets permite que vários computadores usem "
+                "a mesma pesquisa online."
+            ),
+            justify="center",
+            wraplength=440
+        ).pack(
+            pady=(0, 22)
+        )
+
+        def escolher_local():
+            janela.destroy()
+            self._configurar_planilha_local(
+                ficha_id
+            )
+
+        def escolher_google():
+            janela.destroy()
+            self._configurar_google_sheets(
+                ficha_id
+            )
+
+        ctk.CTkButton(
+            janela,
+            text="Planilha local (XLSX)",
+            width=300,
+            height=42,
+            command=escolher_local
+        ).pack(
+            pady=6
+        )
+
+        ctk.CTkButton(
+            janela,
+            text="Google Sheets online",
+            width=300,
+            height=42,
+            command=escolher_google
+        ).pack(
+            pady=6
+        )
+
+        janela.grab_set()
+
+    # ==========================================================
+    # CONFIGURAR PLANILHA LOCAL
+    # ==========================================================
+
+    def _configurar_planilha_local(
+        self,
+        ficha_id
+    ):
+
+        ficha = self.fichas_manager.carregar_ficha(
+            ficha_id
+        )
+
         if not ficha:
             messagebox.showwarning(
                 "Planilha",
@@ -2072,27 +2255,6 @@ class MainWindow(ctk.CTk):
         dados_ficha = self._copiar_dados_ficha(
             ficha["dados"]
         )
-
-        caminho_existente = dados_ficha.get(
-            "planilha_resultados_path"
-        )
-
-        if caminho_existente:
-            if os.path.isfile(caminho_existente):
-                messagebox.showinfo(
-                    "Planilha",
-                    "A planilha desta ficha já está configurada.\n\n"
-                    f"{caminho_existente}"
-                )
-                return
-
-            resposta = messagebox.askyesno(
-                "Planilha",
-                "A planilha configurada anteriormente não foi encontrada.\n\n"
-                "Deseja escolher um novo local?"
-            )
-            if not resposta:
-                return
 
         nome_pesquisa = str(
             dados_ficha.get(
@@ -2134,33 +2296,46 @@ class MainWindow(ctk.CTk):
                 cabecalhos=cabecalhos
             )
 
-            if self.ficha_ativa_id == ficha_id:
-                self.dados_ficha_atual = self._copiar_dados_ficha(
-                    self.fichas_manager.carregar_ficha(ficha_id)["dados"]
-                )
+            self.fichas_manager.atualizar_dados_ficha(
+                ficha_id,
+                {
+                    "tipo_destino": "local",
+                    "google_webapp_url": None,
+                    "google_chave_integracao": None,
+                    "google_cabecalhos": []
+                }
+            )
 
-            if self.ficha_visualizada_id == ficha_id:
-                self.dados_ficha_visualizada = self._copiar_dados_ficha(
-                    self.fichas_manager.carregar_ficha(ficha_id)["dados"]
-                )
+            self._recarregar_contexto_ficha(
+                ficha_id
+            )
 
-            if hasattr(self, "planilha_button"):
+            if hasattr(
+                self,
+                "planilha_button"
+            ):
                 self.planilha_button.configure(
-                    text="Planilha da pesquisa já configurada",
+                    text="Planilha local já configurada",
                     state="disabled"
                 )
 
-            if hasattr(self, "status"):
+            if hasattr(
+                self,
+                "status"
+            ):
                 self.status.configure(
                     text="Status: ficha colocada em produção."
                 )
 
-            versao = dados_ficha.get("versao", 1)
+            versao = dados_ficha.get(
+                "versao",
+                1
+            )
 
             messagebox.showinfo(
                 "Pesquisa em produção",
-                "A ficha foi colocada em produção e a planilha foi criada.\n\n"
-                "A linha 1 da planilha representa a estrutura da ficha.\n"
+                "A ficha foi colocada em produção com planilha local.\n\n"
+                "A linha 1 representa a estrutura da ficha.\n"
                 "Cada nova ficha lida será adicionada como uma nova linha.\n\n"
                 f"Versão: {versao}\n"
                 f"Colunas: {len(cabecalhos)}\n"
@@ -2177,6 +2352,311 @@ class MainWindow(ctk.CTk):
             print(
                 "Erro ao criar planilha:",
                 repr(erro)
+            )
+
+    # ==========================================================
+    # CONFIGURAR GOOGLE SHEETS
+    # ==========================================================
+
+    def _configurar_google_sheets(
+        self,
+        ficha_id
+    ):
+
+        ficha = self.fichas_manager.carregar_ficha(
+            ficha_id
+        )
+
+        if not ficha:
+            messagebox.showwarning(
+                "Google Sheets",
+                "Não foi possível carregar a ficha selecionada."
+            )
+            return
+
+        dados_ficha = self._copiar_dados_ficha(
+            ficha["dados"]
+        )
+
+        try:
+            cabecalhos = PlanilhaResultados.cabecalhos_da_ficha(
+                dados_ficha
+            )
+
+            codigo_apps_script, chave_integracao = (
+                GoogleSheetsWebApp.gerar_codigo_apps_script()
+            )
+
+        except Exception as erro:
+            messagebox.showerror(
+                "Google Sheets",
+                "Não foi possível preparar a integração.\n\n"
+                f"{erro}"
+            )
+            return
+
+        janela = ctk.CTkToplevel(
+            self
+        )
+
+        janela.title(
+            "Configurar Google Sheets"
+        )
+
+        janela.geometry(
+            "690x560"
+        )
+
+        janela.minsize(
+            620,
+            520
+        )
+
+        janela.transient(
+            self
+        )
+
+        ctk.CTkLabel(
+            janela,
+            text="Configurar Google Sheets",
+            font=(
+                "Segoe UI",
+                20,
+                "bold"
+            )
+        ).pack(
+            pady=(20, 8)
+        )
+
+        instrucoes = (
+            "1. Crie ou abra uma planilha vazia no Google Sheets.\n"
+            "2. Abra Extensões → Apps Script.\n"
+            "3. Clique em 'Copiar código' abaixo e cole no Code.gs.\n"
+            "4. Salve e faça Deploy → New deployment → Web app.\n"
+            "5. Use Execute as: Me e Who has access: Anyone.\n"
+            "6. Autorize, copie a Web app URL terminada em /exec e cole abaixo."
+        )
+
+        ctk.CTkLabel(
+            janela,
+            text=instrucoes,
+            justify="left",
+            anchor="w",
+            wraplength=620
+        ).pack(
+            fill="x",
+            padx=30,
+            pady=(4, 14)
+        )
+
+        status_copia = ctk.CTkLabel(
+            janela,
+            text="O SDIP já gerou uma chave exclusiva para esta integração."
+        )
+
+        status_copia.pack(
+            pady=(0, 8)
+        )
+
+        def copiar_codigo():
+            try:
+                self.clipboard_clear()
+                self.clipboard_append(
+                    codigo_apps_script
+                )
+                self.update_idletasks()
+                status_copia.configure(
+                    text="Código copiado. Cole-o no Code.gs do Apps Script."
+                )
+            except Exception as erro:
+                messagebox.showerror(
+                    "Google Sheets",
+                    "Não foi possível copiar o código.\n\n"
+                    f"{erro}"
+                )
+
+        ctk.CTkButton(
+            janela,
+            text="Copiar código do Apps Script",
+            width=300,
+            height=42,
+            command=copiar_codigo
+        ).pack(
+            pady=(0, 18)
+        )
+
+        ctk.CTkLabel(
+            janela,
+            text="Web app URL:"
+        ).pack(
+            anchor="w",
+            padx=35,
+            pady=(4, 4)
+        )
+
+        url_entry = ctk.CTkEntry(
+            janela,
+            placeholder_text="https://script.google.com/macros/s/.../exec"
+        )
+
+        url_entry.pack(
+            fill="x",
+            padx=35,
+            pady=(0, 14)
+        )
+
+        status_conexao = ctk.CTkLabel(
+            janela,
+            text="Aguardando configuração."
+        )
+
+        status_conexao.pack(
+            pady=(2, 10)
+        )
+
+        def testar_e_vincular():
+            url = url_entry.get().strip()
+
+            try:
+                status_conexao.configure(
+                    text="Testando conexão..."
+                )
+                janela.update_idletasks()
+
+                integracao = GoogleSheetsWebApp(
+                    url_webapp=url,
+                    chave_integracao=chave_integracao
+                )
+
+                conexao = integracao.testar_conexao()
+
+                integracao.configurar_cabecalhos(
+                    cabecalhos
+                )
+
+                self.fichas_manager.atualizar_dados_ficha(
+                    ficha_id,
+                    {
+                        "tipo_destino": "google",
+                        "google_webapp_url": url,
+                        "google_chave_integracao": chave_integracao,
+                        "google_cabecalhos": list(cabecalhos),
+                        "planilha_resultados_path": None,
+                        "planilha_cabecalhos": list(cabecalhos),
+                        "status_producao": FichasManager.STATUS_PRODUCAO
+                    }
+                )
+
+                self._recarregar_contexto_ficha(
+                    ficha_id
+                )
+
+                if hasattr(
+                    self,
+                    "planilha_button"
+                ):
+                    self.planilha_button.configure(
+                        text="Google Sheets já configurado",
+                        state="disabled"
+                    )
+
+                if hasattr(
+                    self,
+                    "status"
+                ):
+                    self.status.configure(
+                        text="Status: ficha colocada em produção."
+                    )
+
+                nome_planilha = conexao.get(
+                    "planilha",
+                    "Google Sheets"
+                )
+
+                nome_aba = conexao.get(
+                    "aba",
+                    ""
+                )
+
+                janela.destroy()
+
+                messagebox.showinfo(
+                    "Google Sheets configurado",
+                    "A pesquisa foi vinculada com sucesso.\n\n"
+                    f"Planilha: {nome_planilha}\n"
+                    f"Aba: {nome_aba}\n"
+                    f"Colunas: {len(cabecalhos)}\n\n"
+                    "A URL e a chave foram salvas na pesquisa e serão "
+                    "incluídas ao exportar o arquivo .sdip."
+                )
+
+            except GoogleSheetsWebAppErro as erro:
+                status_conexao.configure(
+                    text="Falha na integração."
+                )
+
+                messagebox.showerror(
+                    "Google Sheets",
+                    "Não foi possível vincular a planilha.\n\n"
+                    f"{erro}"
+                )
+
+            except Exception as erro:
+                status_conexao.configure(
+                    text="Falha na integração."
+                )
+
+                messagebox.showerror(
+                    "Google Sheets",
+                    "Não foi possível concluir a configuração.\n\n"
+                    f"{erro}"
+                )
+
+        ctk.CTkButton(
+            janela,
+            text="Testar e vincular",
+            width=300,
+            height=42,
+            command=testar_e_vincular
+        ).pack(
+            pady=(0, 8)
+        )
+
+        ctk.CTkButton(
+            janela,
+            text="Cancelar",
+            width=180,
+            command=janela.destroy
+        ).pack(
+            pady=(0, 16)
+        )
+
+        janela.grab_set()
+
+    # ==========================================================
+    # RECARREGAR CONTEXTO DA FICHA
+    # ==========================================================
+
+    def _recarregar_contexto_ficha(
+        self,
+        ficha_id
+    ):
+
+        ficha = self.fichas_manager.carregar_ficha(
+            ficha_id
+        )
+
+        if not ficha:
+            return
+
+        if self.ficha_ativa_id == ficha_id:
+            self.dados_ficha_atual = self._copiar_dados_ficha(
+                ficha["dados"]
+            )
+
+        if self.ficha_visualizada_id == ficha_id:
+            self.dados_ficha_visualizada = self._copiar_dados_ficha(
+                ficha["dados"]
             )
 
     # ==========================================================
@@ -2370,6 +2850,18 @@ class MainWindow(ctk.CTk):
             ),
             "planilha_cabecalhos": list(
                 dados.get("planilha_cabecalhos", [])
+            ),
+            "tipo_destino": dados.get(
+                "tipo_destino"
+            ),
+            "google_webapp_url": dados.get(
+                "google_webapp_url"
+            ),
+            "google_chave_integracao": dados.get(
+                "google_chave_integracao"
+            ),
+            "google_cabecalhos": list(
+                dados.get("google_cabecalhos", [])
             ),
             "status_producao": dados.get(
                 "status_producao",
@@ -3011,45 +3503,110 @@ class MainWindow(ctk.CTk):
                 dados
             )
 
-            caminho_planilha = self.dados_ficha_atual.get(
-                "planilha_resultados_path"
-            )
-
-            if not caminho_planilha:
-                raise ValueError(
-                    "A planilha desta pesquisa ainda não foi criada. "
-                    "Abra 'Visualizar ficha ativa' e clique em "
-                    "'Gerar planilha da pesquisa' antes de salvar resultados."
-                )
-
-            if not os.path.isfile(caminho_planilha):
-                raise FileNotFoundError(
-                    "A planilha configurada desta pesquisa não foi encontrada. "
-                    "Reconfigure a planilha antes de salvar novos resultados."
-                )
-
             cabecalhos_esperados = PlanilhaResultados.cabecalhos_da_ficha(
                 self.dados_ficha_atual
             )
 
-            PlanilhaResultados.adicionar_registro(
-                caminho_planilha,
-                registro,
-                cabecalhos_esperados=cabecalhos_esperados,
-                dados_ficha=self.dados_ficha_atual
+            tipo_destino = self.dados_ficha_atual.get(
+                "tipo_destino"
             )
+
+            caminho_planilha = self.dados_ficha_atual.get(
+                "planilha_resultados_path"
+            )
+
+            # Compatibilidade com fichas antigas, criadas antes da escolha
+            # explícita do tipo de destino.
+            if not tipo_destino and caminho_planilha:
+                tipo_destino = "local"
+
+            if tipo_destino == "google":
+
+                url_webapp = self.dados_ficha_atual.get(
+                    "google_webapp_url"
+                )
+
+                chave_integracao = self.dados_ficha_atual.get(
+                    "google_chave_integracao"
+                )
+
+                if not url_webapp or not chave_integracao:
+                    raise ValueError(
+                        "A integração Google Sheets desta pesquisa está "
+                        "incompleta. Reconfigure o destino dos resultados."
+                    )
+
+                integracao = GoogleSheetsWebApp(
+                    url_webapp=url_webapp,
+                    chave_integracao=chave_integracao
+                )
+
+                resposta = integracao.salvar_registro(
+                    cabecalhos_esperados,
+                    registro
+                )
+
+                destino_mensagem = (
+                    "Google Sheets"
+                )
+
+                linha_salva = resposta.get(
+                    "linha"
+                )
+
+                if linha_salva:
+                    destino_mensagem += (
+                        f" - linha {linha_salva}"
+                    )
+
+            elif tipo_destino == "local":
+
+                if not caminho_planilha:
+                    raise ValueError(
+                        "A planilha local desta pesquisa ainda não foi "
+                        "configurada. Abra 'Visualizar ficha ativa' e "
+                        "configure o destino dos resultados."
+                    )
+
+                if not os.path.isfile(
+                    caminho_planilha
+                ):
+                    raise FileNotFoundError(
+                        "A planilha local configurada desta pesquisa não "
+                        "foi encontrada. Reconfigure o destino antes de "
+                        "salvar novos resultados."
+                    )
+
+                PlanilhaResultados.adicionar_registro(
+                    caminho_planilha,
+                    registro,
+                    cabecalhos_esperados=cabecalhos_esperados,
+                    dados_ficha=self.dados_ficha_atual
+                )
+
+                destino_mensagem = caminho_planilha
+
+            else:
+                raise ValueError(
+                    "O destino dos resultados desta pesquisa ainda não foi "
+                    "configurado. Abra 'Visualizar ficha ativa' e escolha "
+                    "Planilha local ou Google Sheets."
+                )
 
             self.resultado_omr = None
 
             self.status.configure(
-                text="Status: resultado salvo na planilha. Faça uma nova leitura para o próximo formulário."
+                text=(
+                    "Status: resultado salvo. Faça uma nova leitura "
+                    "para o próximo formulário."
+                )
             )
 
             messagebox.showinfo(
                 "Resultado salvo",
                 (
                     "O resultado da ficha foi salvo com sucesso.\n\n"
-                    f"Planilha: {caminho_planilha}"
+                    f"Destino: {destino_mensagem}"
                 )
             )
 
