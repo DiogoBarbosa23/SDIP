@@ -204,6 +204,22 @@ class CampoIdentificacaoEditor(ctk.CTkFrame):
             column=0,
             sticky="w",
             padx=12,
+            pady=(0, 6)
+        )
+
+        self.usar_no_nome_pdf = ctk.BooleanVar(
+            value=False
+        )
+
+        ctk.CTkCheckBox(
+            self,
+            text="Nome do PDF",
+            variable=self.usar_no_nome_pdf
+        ).grid(
+            row=5,
+            column=0,
+            sticky="w",
+            padx=12,
             pady=(0, 10)
         )
 
@@ -214,7 +230,10 @@ class CampoIdentificacaoEditor(ctk.CTkFrame):
 
         return {
             "nome": self.nome.get().strip(),
-            "tipo": self.tipo.get()
+            "tipo": self.tipo.get(),
+            "usar_no_nome_pdf": bool(
+                self.usar_no_nome_pdf.get()
+            )
         }
 
     def carregar_dados(
@@ -249,6 +268,15 @@ class CampoIdentificacaoEditor(ctk.CTkFrame):
 
         self.tipo.set(
             tipo
+        )
+
+        self.usar_no_nome_pdf.set(
+            bool(
+                dados.get(
+                    "usar_no_nome_pdf",
+                    False
+                )
+            )
         )
 
     def atualizar_numero(

@@ -927,12 +927,23 @@ class MainWindow(ctk.CTk):
 
             ctk.CTkButton(
                 actions_frame,
+                text="Pasta dos PDFs processados",
+                command=self.configurar_pasta_pdfs_processados
+            ).grid(
+                row=1,
+                column=0,
+                sticky="ew",
+                padx=4,
+                pady=4
+            )
+
+            ctk.CTkButton(
+                actions_frame,
                 text="Salvar PDF localmente",
                 command=self.exportar_pdf_visualizacao
             ).grid(
                 row=1,
-                column=0,
-                columnspan=2,
+                column=1,
                 sticky="ew",
                 padx=4,
                 pady=4
@@ -3349,6 +3360,550 @@ class MainWindow(ctk.CTk):
                 )
 
     # ==========================================================
+    # CONFIGURAÇÃO LOCAL DOS PDFs PROCESSADOS
+    # ==========================================================
+
+    @staticmethod
+    def _caminho_configuracao_local():
+
+        local_app_data = os.environ.get(
+            "LOCALAPPDATA"
+        )
+
+        if local_app_data:
+            pasta_config = os.path.join(
+                local_app_data,
+                "SDIP"
+            )
+        else:
+            pasta_config = os.path.join(
+                os.path.expanduser("~"),
+                ".sdip"
+            )
+
+        os.makedirs(
+            pasta_config,
+            exist_ok=True
+        )
+
+        return os.path.join(
+            pasta_config,
+            "config_local.json"
+        )
+
+    def _carregar_configuracao_local(self):
+
+        caminho = self._caminho_configuracao_local()
+
+        if not os.path.isfile(caminho):
+            return {}
+
+        try:
+            with open(
+                caminho,
+                "r",
+                encoding="utf-8"
+            ) as arquivo:
+                dados = json.load(arquivo)
+
+        except (
+            OSError,
+            json.JSONDecodeError
+        ) as erro:
+            raise RuntimeError(
+                "Não foi possível ler a configuração local do SDIP. "
+                "O arquivo de configuração pode estar corrompido."
+            ) from erro
+
+        if not isinstance(dados, dict):
+            raise RuntimeError(
+                "A configuração local do SDIP possui formato inválido."
+            )
+
+        return dados
+
+    def _salvar_configuracao_local(
+        self,
+        dados
+    ):
+
+        caminho = self._caminho_configuracao_local()
+        caminho_temporario = (
+            caminho
+            + ".tmp"
+        )
+
+        try:
+            with open(
+                caminho_temporario,
+                "w",
+                encoding="utf-8"
+            ) as arquivo:
+                json.dump(
+                    dados,
+                    arquivo,
+                    ensure_ascii=False,
+                    indent=2
+                )
+
+            os.replace(
+                caminho_temporario,
+                caminho
+            )
+
+        except OSError as erro:
+            try:
+                if os.path.isfile(
+                    caminho_temporario
+                ):
+                    os.remove(
+                        caminho_temporario
+                    )
+            except OSError:
+                pass
+
+            raise RuntimeError(
+                "Não foi possível salvar a configuração local do SDIP."
+            ) from erro
+
+    def _dados_para_configuracao_local(self):
+
+        if self.modo_visualizacao:
+            return (
+                self.dados_ficha_visualizada
+                or self.dados_ficha_atual
+                or {}
+            )
+
+        return (
+            self.dados_ficha_atual
+            or {}
+        )
+
+    def _pesquisa_id_configuracao_local(self):
+
+        dados = self._dados_para_configuracao_local()
+
+        pesquisa_id = str(
+            dados.get(
+                "pesquisa_id",
+                ""
+            )
+        ).strip()
+
+        if pesquisa_id:
+            return pesquisa_id
+
+        ficha_id = (
+            self.ficha_visualizada_id
+            if self.modo_visualizacao
+            else self.ficha_ativa_id
+        )
+
+        return str(
+            ficha_id
+            or ""
+        ).strip()
+
+    def _pasta_pdfs_configurada(self):
+
+        pesquisa_id = self._pesquisa_id_configuracao_local()
+
+        if not pesquisa_id:
+            return None
+
+        configuracao = self._carregar_configuracao_local()
+
+        pastas = configuracao.get(
+            "pastas_pdfs_processados",
+            {}
+        )
+
+        if not isinstance(
+            pastas,
+            dict
+        ):
+            return None
+
+        caminho = pastas.get(
+            pesquisa_id
+        )
+
+        if not caminho:
+            return None
+
+        return os.path.abspath(
+            os.path.expanduser(
+                str(caminho)
+            )
+        )
+
+    def _definir_pasta_pdfs_processados(
+        self,
+        caminho
+    ):
+
+        pesquisa_id = self._pesquisa_id_configuracao_local()
+
+        if not pesquisa_id:
+            raise ValueError(
+                "Não foi possível identificar a pesquisa atual."
+            )
+
+        caminho = os.path.abspath(
+            os.path.expanduser(
+                str(caminho)
+            )
+        )
+
+        if not os.path.isdir(
+            caminho
+        ):
+            raise FileNotFoundError(
+                "A pasta selecionada para os PDFs processados não existe."
+            )
+
+        configuracao = self._carregar_configuracao_local()
+
+        pastas = configuracao.setdefault(
+            "pastas_pdfs_processados",
+            {}
+        )
+
+        if not isinstance(
+            pastas,
+            dict
+        ):
+            pastas = {}
+            configuracao[
+                "pastas_pdfs_processados"
+            ] = pastas
+
+        pastas[
+            pesquisa_id
+        ] = caminho
+
+        self._salvar_configuracao_local(
+            configuracao
+        )
+
+        return caminho
+
+    def configurar_pasta_pdfs_processados(self):
+
+        try:
+            pesquisa_id = self._pesquisa_id_configuracao_local()
+
+            if not pesquisa_id:
+                messagebox.showwarning(
+                    "PDFs processados",
+                    "Nenhuma pesquisa está disponível para configuração."
+                )
+                return
+
+            pasta_atual = self._pasta_pdfs_configurada()
+
+            initialdir = (
+                pasta_atual
+                if pasta_atual
+                and os.path.isdir(
+                    pasta_atual
+                )
+                else os.path.expanduser(
+                    "~"
+                )
+            )
+
+            caminho = filedialog.askdirectory(
+                title="Selecionar pasta para PDFs processados",
+                initialdir=initialdir
+            )
+
+            if not caminho:
+                return
+
+            caminho = self._definir_pasta_pdfs_processados(
+                caminho
+            )
+
+            messagebox.showinfo(
+                "PDFs processados",
+                (
+                    "A pasta dos PDFs processados foi configurada para "
+                    "esta pesquisa.\n\n"
+                    f"{caminho}"
+                )
+            )
+
+        except Exception as erro:
+            messagebox.showerror(
+                "PDFs processados",
+                (
+                    "Não foi possível configurar a pasta dos PDFs.\n\n"
+                    f"{erro}"
+                )
+            )
+
+    def _obter_pasta_pdfs_para_salvar(self):
+
+        pasta = self._pasta_pdfs_configurada()
+
+        if pasta and os.path.isdir(
+            pasta
+        ):
+            return pasta
+
+        if pasta:
+            alterar = messagebox.askyesno(
+                "Pasta dos PDFs indisponível",
+                (
+                    "A pasta configurada para os PDFs processados não está "
+                    "disponível.\n\n"
+                    f"{pasta}\n\n"
+                    "Deseja selecionar outra pasta agora?"
+                )
+            )
+
+            if not alterar:
+                return None
+
+        caminho = filedialog.askdirectory(
+            title="Selecionar pasta para PDFs processados",
+            initialdir=os.path.expanduser(
+                "~"
+            )
+        )
+
+        if not caminho:
+            return None
+
+        return self._definir_pasta_pdfs_processados(
+            caminho
+        )
+
+    @staticmethod
+    def _sanitizar_nome_pdf(
+        valor
+    ):
+
+        texto = str(
+            valor
+            or ""
+        ).strip()
+
+        if not texto:
+            return ""
+
+        caracteres_invalidos = (
+            '<>:"/\\|?*'
+        )
+
+        texto = "".join(
+            "_"
+            if (
+                caractere in caracteres_invalidos
+                or ord(caractere) < 32
+            )
+            else caractere
+            for caractere in texto
+        )
+
+        texto = " ".join(
+            texto.split()
+        ).rstrip(
+            " ."
+        )
+
+        nomes_reservados = {
+            "CON",
+            "PRN",
+            "AUX",
+            "NUL",
+            "COM1",
+            "COM2",
+            "COM3",
+            "COM4",
+            "COM5",
+            "COM6",
+            "COM7",
+            "COM8",
+            "COM9",
+            "LPT1",
+            "LPT2",
+            "LPT3",
+            "LPT4",
+            "LPT5",
+            "LPT6",
+            "LPT7",
+            "LPT8",
+            "LPT9"
+        }
+
+        if texto.upper() in nomes_reservados:
+            texto += "_"
+
+        return texto[:180]
+
+    def _nome_base_pdf_processado(
+        self,
+        dados
+    ):
+
+        identificacao = dados.get(
+            "identificacao",
+            {}
+        )
+
+        partes = []
+
+        for campo in self.dados_ficha_atual.get(
+            "campos_identificacao",
+            []
+        ):
+            if not campo.get(
+                "usar_no_nome_pdf",
+                False
+            ):
+                continue
+
+            nome = str(
+                campo.get(
+                    "nome",
+                    ""
+                )
+            ).strip()
+
+            if not nome:
+                continue
+
+            valor = self._sanitizar_nome_pdf(
+                identificacao.get(
+                    nome,
+                    ""
+                )
+            )
+
+            if valor:
+                partes.append(
+                    valor
+                )
+
+        nome_base = "_".join(
+            partes
+        )
+
+        if not nome_base and self.pdf_path:
+            nome_base = os.path.splitext(
+                os.path.basename(
+                    self.pdf_path
+                )
+            )[0]
+
+            nome_base = self._sanitizar_nome_pdf(
+                nome_base
+            )
+
+        return (
+            nome_base
+            or "ficha_processada"
+        )
+
+    def _arquivar_pdf_processado(
+        self,
+        dados
+    ):
+
+        if not self.pdf_path:
+            raise ValueError(
+                "Nenhum PDF escaneado está selecionado."
+            )
+
+        if not os.path.isfile(
+            self.pdf_path
+        ):
+            raise FileNotFoundError(
+                "O PDF escaneado selecionado não foi encontrado."
+            )
+
+        pasta = self._obter_pasta_pdfs_para_salvar()
+
+        if not pasta:
+            return None
+
+        nome_base = self._nome_base_pdf_processado(
+            dados
+        )
+
+        indice = 1
+
+        while True:
+            sufixo = (
+                ""
+                if indice == 1
+                else f"_{indice}"
+            )
+
+            caminho_destino = os.path.join(
+                pasta,
+                f"{nome_base}{sufixo}.pdf"
+            )
+
+            try:
+                with open(
+                    self.pdf_path,
+                    "rb"
+                ) as origem, open(
+                    caminho_destino,
+                    "xb"
+                ) as destino:
+                    shutil.copyfileobj(
+                        origem,
+                        destino
+                    )
+
+                try:
+                    shutil.copystat(
+                        self.pdf_path,
+                        caminho_destino
+                    )
+                except OSError:
+                    pass
+
+                return caminho_destino
+
+            except FileExistsError:
+                indice += 1
+                continue
+
+            except Exception:
+                try:
+                    if os.path.isfile(
+                        caminho_destino
+                    ):
+                        os.remove(
+                            caminho_destino
+                        )
+                except OSError:
+                    pass
+
+                raise
+
+    @staticmethod
+    def _remover_pdf_arquivado(
+        caminho
+    ):
+
+        if not caminho:
+            return
+
+        if os.path.isfile(
+            caminho
+        ):
+            os.remove(
+                caminho
+            )
+
+    # ==========================================================
     # MONTAR REGISTRO DA PESQUISA
     # ==========================================================
 
@@ -3559,6 +4114,9 @@ class MainWindow(ctk.CTk):
         dados
     ):
 
+        caminho_pdf_arquivado = None
+        dados_salvos = False
+
         try:
 
             registro = self._montar_registro_pesquisa(
@@ -3623,6 +4181,8 @@ class MainWindow(ctk.CTk):
             if not tipo_destino and caminho_planilha:
                 tipo_destino = "local"
 
+            integracao = None
+
             if tipo_destino == "google":
 
                 url_webapp = self.dados_ficha_atual.get(
@@ -3644,24 +4204,6 @@ class MainWindow(ctk.CTk):
                     chave_integracao=chave_integracao
                 )
 
-                resposta = integracao.salvar_registro(
-                    cabecalhos_esperados,
-                    registro
-                )
-
-                destino_mensagem = (
-                    "Google Sheets"
-                )
-
-                linha_salva = resposta.get(
-                    "linha"
-                )
-
-                if linha_salva:
-                    destino_mensagem += (
-                        f" - linha {linha_salva}"
-                    )
-
             elif tipo_destino == "local":
 
                 if not caminho_planilha:
@@ -3680,21 +4222,67 @@ class MainWindow(ctk.CTk):
                         "salvar novos resultados."
                     )
 
-                PlanilhaResultados.adicionar_registro(
-                    caminho_planilha,
-                    registro,
-                    cabecalhos_esperados=cabecalhos_esperados,
-                    dados_ficha=self.dados_ficha_atual
-                )
-
-                destino_mensagem = caminho_planilha
-
             else:
                 raise ValueError(
                     "O destino dos resultados desta pesquisa ainda não foi "
                     "configurado. Abra 'Visualizar ficha ativa' e escolha "
                     "Planilha local ou Google Sheets."
                 )
+
+            caminho_pdf_arquivado = self._arquivar_pdf_processado(
+                dados
+            )
+
+            if not caminho_pdf_arquivado:
+                return
+
+            try:
+                if tipo_destino == "google":
+
+                    resposta = integracao.salvar_registro(
+                        cabecalhos_esperados,
+                        registro
+                    )
+
+                    destino_mensagem = (
+                        "Google Sheets"
+                    )
+
+                    linha_salva = resposta.get(
+                        "linha"
+                    )
+
+                    if linha_salva:
+                        destino_mensagem += (
+                            f" - linha {linha_salva}"
+                        )
+
+                else:
+                    PlanilhaResultados.adicionar_registro(
+                        caminho_planilha,
+                        registro,
+                        cabecalhos_esperados=cabecalhos_esperados,
+                        dados_ficha=self.dados_ficha_atual
+                    )
+
+                    destino_mensagem = caminho_planilha
+
+                dados_salvos = True
+
+            except Exception:
+                try:
+                    self._remover_pdf_arquivado(
+                        caminho_pdf_arquivado
+                    )
+                    caminho_pdf_arquivado = None
+                except OSError as erro_rollback:
+                    raise RuntimeError(
+                        "Falha ao salvar os dados e também ao remover o PDF "
+                        "que havia sido arquivado. Verifique manualmente o "
+                        f"arquivo:\n{caminho_pdf_arquivado}"
+                    ) from erro_rollback
+
+                raise
 
             self.resultado_omr = None
 
@@ -3711,11 +4299,24 @@ class MainWindow(ctk.CTk):
                 "Resultado salvo",
                 (
                     "O resultado da ficha foi salvo com sucesso.\n\n"
-                    f"Destino: {destino_mensagem}"
+                    f"Destino: {destino_mensagem}\n\n"
+                    "PDF processado:\n"
+                    f"{caminho_pdf_arquivado}"
                 )
             )
 
         except Exception as erro:
+
+            if (
+                caminho_pdf_arquivado
+                and not dados_salvos
+            ):
+                try:
+                    self._remover_pdf_arquivado(
+                        caminho_pdf_arquivado
+                    )
+                except OSError:
+                    pass
 
             messagebox.showerror(
                 "Erro ao salvar resultado",
