@@ -3467,6 +3467,89 @@ class MainWindow(ctk.CTk):
         return registro
 
     # ==========================================================
+    # CAMPOS MANUAIS VAZIOS
+    # ==========================================================
+
+    def _campos_manuais_vazios(
+        self,
+        dados
+    ):
+
+        campos_vazios = []
+
+        identificacao = dados.get(
+            "identificacao",
+            {}
+        )
+
+        for campo in self.dados_ficha_atual.get(
+            "campos_identificacao",
+            []
+        ):
+            nome = str(
+                campo.get("nome", "")
+            ).strip()
+
+            if not nome:
+                continue
+
+            valor = identificacao.get(
+                nome,
+                ""
+            )
+
+            if not str(valor).strip():
+                campos_vazios.append(
+                    nome
+                )
+
+        respostas_abertas = dados.get(
+            "respostas_abertas",
+            {}
+        )
+
+        for elemento in self.dados_ficha_atual.get(
+            "elementos",
+            []
+        ):
+            if elemento.get(
+                "tipo",
+                "pergunta"
+            ) != "pergunta":
+                continue
+
+            if elemento.get(
+                "tipo_resposta"
+            ) != "aberta":
+                continue
+
+            numero = str(
+                elemento.get("numero", "")
+            ).strip()
+
+            texto = str(
+                elemento.get("texto", "")
+            ).strip()
+
+            valor = respostas_abertas.get(
+                numero,
+                ""
+            )
+
+            if not str(valor).strip():
+                nome_campo = (
+                    f"{numero} {texto}".strip()
+                    if numero and texto
+                    else (numero or texto or "Pergunta aberta")
+                )
+
+                campos_vazios.append(
+                    nome_campo
+                )
+
+        return campos_vazios
+
+    # ==========================================================
     # SALVAR PESQUISA
     # ==========================================================
 
@@ -3502,6 +3585,28 @@ class MainWindow(ctk.CTk):
             registro = self._montar_registro_pesquisa(
                 dados
             )
+
+            campos_vazios = self._campos_manuais_vazios(
+                dados
+            )
+
+            if campos_vazios:
+                lista_campos = "\n".join(
+                    f"• {campo}"
+                    for campo in campos_vazios
+                )
+
+                salvar_mesmo_assim = messagebox.askyesno(
+                    "Campos não preenchidos",
+                    (
+                        "Existem campos manuais não preenchidos:\n\n"
+                        f"{lista_campos}\n\n"
+                        "Deseja salvar o resultado mesmo assim?"
+                    )
+                )
+
+                if not salvar_mesmo_assim:
+                    return
 
             cabecalhos_esperados = PlanilhaResultados.cabecalhos_da_ficha(
                 self.dados_ficha_atual
