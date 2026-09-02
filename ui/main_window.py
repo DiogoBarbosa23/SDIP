@@ -86,6 +86,10 @@ class MainWindow(ctk.CTk):
         self.dados_ficha_atual = None
         self.resultado_omr = None
 
+        # Fila de PDFs selecionados para processamento sequencial.
+        self.fila_pdfs = []
+        self.indice_fila_pdf = -1
+
         # Ficha recém-gerada nesta sessão
         self.ficha_recente_id = None
         self.pdf_ficha_recente = None
@@ -957,7 +961,7 @@ class MainWindow(ctk.CTk):
 
             ctk.CTkButton(
                 actions_frame,
-                text="Selecionar ficha PDF",
+                text="Selecionar ficha(s) PDF",
                 command=self.selecionar_pdf
             ).grid(
                 row=0,
@@ -3022,6 +3026,110 @@ class MainWindow(ctk.CTk):
             imagem.close()
 
     # ==========================================================
+    # FILA DE PDFS
+    # ==========================================================
+
+    def _limpar_fila_pdfs(self):
+
+        self.fila_pdfs = []
+        self.indice_fila_pdf = -1
+
+    def _pdf_atual_pertence_a_fila(self):
+
+        if not self.pdf_path:
+            return False
+
+        if not self.fila_pdfs:
+            return False
+
+        if not (
+            0 <= self.indice_fila_pdf < len(self.fila_pdfs)
+        ):
+            return False
+
+        caminho_fila = self.fila_pdfs[
+            self.indice_fila_pdf
+        ]
+
+        return os.path.abspath(
+            caminho_fila
+        ) == os.path.abspath(
+            self.pdf_path
+        )
+
+    def _texto_pdf_atual(self, caminho):
+
+        nome = os.path.basename(
+            caminho
+        )
+
+        if (
+            len(self.fila_pdfs) > 1
+            and 0 <= self.indice_fila_pdf < len(self.fila_pdfs)
+            and os.path.abspath(
+                self.fila_pdfs[self.indice_fila_pdf]
+            ) == os.path.abspath(caminho)
+        ):
+            return (
+                f"Arquivo {self.indice_fila_pdf + 1} "
+                f"de {len(self.fila_pdfs)} — {nome}"
+            )
+
+        return nome
+
+    def _avancar_fila_apos_salvar(self):
+
+        if not self._pdf_atual_pertence_a_fila():
+            return {
+                "avancou": False,
+                "concluiu": False
+            }
+
+        total = len(
+            self.fila_pdfs
+        )
+
+        if total <= 1:
+            return {
+                "avancou": False,
+                "concluiu": False
+            }
+
+        proximo_indice = (
+            self.indice_fila_pdf + 1
+        )
+
+        if proximo_indice >= total:
+            if hasattr(self, "process_omr_button"):
+                self.process_omr_button.configure(
+                    state="disabled"
+                )
+
+            return {
+                "avancou": False,
+                "concluiu": True,
+                "total": total
+            }
+
+        self.indice_fila_pdf = proximo_indice
+
+        proximo_caminho = self.fila_pdfs[
+            self.indice_fila_pdf
+        ]
+
+        self.carregar_pdf(
+            proximo_caminho
+        )
+
+        return {
+            "avancou": True,
+            "concluiu": False,
+            "indice": self.indice_fila_pdf + 1,
+            "total": total,
+            "caminho": proximo_caminho
+        }
+
+    # ==========================================================
     # CARREGAR PDF
     # ==========================================================
 
@@ -3040,7 +3148,7 @@ class MainWindow(ctk.CTk):
             )
 
         self.file_name.configure(
-            text=os.path.basename(
+            text=self._texto_pdf_atual(
                 caminho
             )
         )
@@ -3104,6 +3212,8 @@ class MainWindow(ctk.CTk):
 
             return
 
+        self._limpar_fila_pdfs()
+
         self.carregar_pdf(
             self.pdf_gerado_path
         )
@@ -3122,8 +3232,8 @@ class MainWindow(ctk.CTk):
         self
     ):
 
-        caminho = filedialog.askopenfilename(
-            title="Selecionar ficha PDF",
+        caminhos = filedialog.askopenfilenames(
+            title="Selecionar uma ou várias fichas PDF",
             filetypes=[
                 (
                     "Arquivos PDF",
@@ -3132,18 +3242,31 @@ class MainWindow(ctk.CTk):
             ]
         )
 
-        if not caminho:
+        if not caminhos:
             return
 
+        self.fila_pdfs = list(
+            caminhos
+        )
+        self.indice_fila_pdf = 0
+
         self.carregar_pdf(
-            caminho
+            self.fila_pdfs[0]
         )
 
         self.carregar_mapa_atual()
 
-        self.status.configure(
-            text="Status: PDF carregado com sucesso."
-        )
+        if len(self.fila_pdfs) > 1:
+            self.status.configure(
+                text=(
+                    "Status: fila carregada. "
+                    f"Arquivo 1 de {len(self.fila_pdfs)}."
+                )
+            )
+        else:
+            self.status.configure(
+                text="Status: PDF carregado com sucesso."
+            )
 
     # ==========================================================
     # PRÓXIMA PÁGINA
@@ -4288,12 +4411,63 @@ class MainWindow(ctk.CTk):
 
             self.form_panel.limpar_apos_salvar()
 
-            self.status.configure(
-                text=(
-                    "Status: resultado salvo. Faça uma nova leitura "
-                    "para o próximo formulário."
+            resultado_fila = self._avancar_fila_apos_salvar()
+
+            if resultado_fila.get(
+                "avancou"
+            ):
+                indice = resultado_fila[
+                    "indice"
+                ]
+                total = resultado_fila[
+                    "total"
+                ]
+                proximo_nome = os.path.basename(
+                    resultado_fila["caminho"]
                 )
-            )
+
+                self.status.configure(
+                    text=(
+                        "Status: resultado salvo. Próximo PDF carregado: "
+                        f"arquivo {indice} de {total}."
+                    )
+                )
+
+                mensagem_fila = (
+                    "\n\nPróximo PDF carregado automaticamente:\n"
+                    f"{proximo_nome}\n"
+                    f"Arquivo {indice} de {total}.\n\n"
+                    "Clique em 'Ler ficha (OMR)' para continuar."
+                )
+
+            elif resultado_fila.get(
+                "concluiu"
+            ):
+                total = resultado_fila[
+                    "total"
+                ]
+
+                self.status.configure(
+                    text=(
+                        "Status: fila concluída. "
+                        f"{total} arquivos processados."
+                    )
+                )
+
+                mensagem_fila = (
+                    "\n\nFila concluída.\n"
+                    f"{total} arquivos foram processados."
+                )
+
+            else:
+                self.status.configure(
+                    text=(
+                        "Status: resultado salvo. Faça uma nova leitura "
+                        "para o próximo formulário."
+                    )
+                )
+
+                mensagem_fila = ""
 
             messagebox.showinfo(
                 "Resultado salvo",
@@ -4302,6 +4476,7 @@ class MainWindow(ctk.CTk):
                     f"Destino: {destino_mensagem}\n\n"
                     "PDF processado:\n"
                     f"{caminho_pdf_arquivado}"
+                    f"{mensagem_fila}"
                 )
             )
 
