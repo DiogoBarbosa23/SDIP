@@ -12,6 +12,12 @@ A proposta do SDIP é ser uma solução genérica, capaz de atender diferentes p
 
 ---
 
+## Documentação
+
+Para detalhes sobre arquitetura, funcionamento interno, calibração do OMR, decisões técnicas, integrações e testes realizados, consulte:
+
+[Documentação técnica do SDIP](documentacao.md)
+
 # Fluxo principal
 
 ```text

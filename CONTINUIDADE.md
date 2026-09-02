@@ -1,2562 +1,1257 @@
-# CONTINUIDADE — SDIP 2.0
+# CONTINUIDADE — SDIP
 
-Este arquivo é a fonte principal de continuidade do projeto.
+## Sistema de Digitalização Inteligente de Pesquisas
 
-Antes de continuar o desenvolvimento:
+Este arquivo registra o estado técnico atual do SDIP e deve ser usado como ponto de retomada do desenvolvimento.
 
-1. Ler este arquivo.
-2. Verificar o estado real do código no repositório.
-3. Verificar `git status`.
-4. Verificar o último commit.
-5. Não assumir que arquivos antigos representam o estado atual.
-6. Preservar funcionalidades já validadas.
-7. Alterar uma parte por vez quando estivermos calibrando.
-8. Testar depois de cada alteração importante.
-9. Não recalibrar componentes já validados sem evidência técnica.
+Antes de qualquer alteração relevante:
 
----
-
-# 1. PROJETO
-
-## Nome
-
-**SDIP 2.0 — Sistema de Digitalização Inteligente de Pesquisas**
-
-## Tipo
-
-Projeto pessoal de código aberto.
-
-O projeto não é vinculado a uma instituição específica.
-
-A ideia é desenvolver uma ferramenta simples e reutilizável para criação, impressão, digitalização e leitura automática de pesquisas em papel.
-
-## Objetivo
-
-Permitir que uma pessoa não técnica consiga:
-
-1. criar uma ficha de pesquisa;
-2. definir quantas perguntas quiser;
-3. definir seções opcionais;
-4. definir as opções de resposta;
-5. definir perguntas abertas;
-6. definir os campos do cabeçalho;
-7. gerar automaticamente a ficha;
-8. imprimir a ficha;
-9. preenchê-la manualmente;
-10. escanear as fichas;
-11. processar o PDF;
-12. revisar as respostas;
-13. preencher os dados de identificação e data;
-14. preencher respostas abertas;
-15. salvar o resultado;
-16. posteriormente enviar os resultados para um destino configurável, inicialmente Google Forms.
+1. ler este arquivo;
+2. consultar o `README.md`;
+3. verificar o código atual;
+4. executar `git status`;
+5. verificar os últimos commits;
+6. não reconstruir arquivos a partir de versões antigas;
+7. preservar funcionalidades já validadas;
+8. corrigir apenas problemas comprovados durante a estabilização do MVP.
 
 ---
 
-# 2. DIFERENÇA ENTRE SDIP 1.0 E SDIP 2.0
+# 1. Estado atual
 
-O SDIP 1.0 utilizava uma ficha previamente definida e um mapa de caixas OMR associado manualmente ao formulário.
+O **MVP funcional do SDIP está implementado**.
 
-O SDIP 2.0 está sendo construído para que:
+Estado do Git após o fechamento das funcionalidades:
 
 ```text
-Perguntas fornecidas pelo usuário
-
-        ↓
-
-Seções opcionais
-
-        ↓
-
-Tipo de resposta
-
-        ↓
-
-Perguntas abertas
-
-        ↓
-
-Campos de identificação
-
-        ↓
-
-Geração automática da ficha
-
-        ↓
-
-Caixas OMR automáticas
-
-        ↓
-
-ArUcos automáticos
-
-        ↓
-
-Mapa OMR automático
-
-        ↓
-
-Impressão
-
-        ↓
-
-Preenchimento manual
-
-        ↓
-
-Scanner
-
-        ↓
-
-PDF
-
-        ↓
-
-Detecção dos ArUcos
-
-        ↓
-
-Correção geométrica
-
-        ↓
-
-Normalização
-
-        ↓
-
-Leitura OMR
-
-        ↓
-
-Validação das respostas
-
-        ↓
-
-Identificação + data + respostas abertas
-
-        ↓
-
-Revisão
-
-        ↓
-
-Salvamento
-
-        ↓
-
-Destino configurável
+Branch: main
+Último commit funcional/documentação:
+63701d7 Adiciona fila de PDFs e atualiza documentacao
 ```
 
-O usuário não deve precisar conhecer coordenadas, homografia, ArUco, mapa OMR ou parâmetros internos do leitor.
-
----
-
-# 3. TECNOLOGIAS
-
-## Sistema operacional
-
-Windows 11
-
-## Linguagem
-
-Python 3.13.x
-
-## Ambiente
-
-`.venv`
-
-A pasta `.venv` nunca deve ser enviada ao GitHub.
-
-## Bibliotecas principais
-
-* OpenCV
-* OpenCV ArUco
-* NumPy
-* Pillow
-* PyMuPDF
-* CustomTkinter
-* Tkinter
-* gspread
-* google-auth
-
-O projeto possui `requirements.txt`.
-
----
-
-# 4. ESTRUTURA ATUAL
-
-Estrutura principal:
+Estado confirmado:
 
 ```text
-PesquisaReader/
+Your branch is up to date with 'origin/main'.
 
-├── app.py
-├── README.md
-├── CONTINUIDADE.md
-├── requirements.txt
-│
-├── config/
+nothing to commit, working tree clean
+```
+
+O projeto está entrando na fase de:
+
+```text
+MVP implementado
+        ↓
+build do executável
+        ↓
+testes nas máquinas do trabalho
+        ↓
+correção apenas de bugs comprovados
+        ↓
+versão estável
+        ↓
+GitHub Release
+```
+
+---
+
+# 2. Objetivo do projeto
+
+O SDIP é uma aplicação desktop em Python para automatizar:
+
+```text
+criação da pesquisa
+        ↓
+geração da ficha
+        ↓
+impressão
+        ↓
+preenchimento manual
+        ↓
+digitalização
+        ↓
+leitura OMR
+        ↓
+conferência
+        ↓
+estruturação dos dados
+        ↓
+salvamento
+        ↓
+arquivamento do PDF
+```
+
+O sistema foi criado para permitir que pesquisas em papel sejam convertidas em dados estruturados sem que o usuário precise compreender:
+
+* coordenadas;
+* ArUco;
+* homografia;
+* OMR;
+* thresholds;
+* estrutura interna do mapa.
+
+---
+
+# 3. Tecnologias atuais
+
+Ambiente principal:
+
+```text
+Windows
+Python 3.13.x
+.venv
+```
+
+Principais tecnologias:
+
+* Python;
+* CustomTkinter;
+* Tkinter;
+* OpenCV;
+* ArUco;
+* NumPy;
+* Pillow;
+* PyMuPDF;
+* homografia;
+* OMR;
+* XLSX;
+* Google Sheets;
+* Google Apps Script;
+* JSON;
+* Git;
+* GitHub.
+
+A integração atual com Google Sheets **não utiliza mais**:
+
+```text
+gspread
+google-auth
+Service Account
+credentials.json
+```
+
+Ela utiliza Google Apps Script publicado como Web App.
+
+---
+
+# 4. Estrutura principal
+
+```text
+SDIP/
 │
 ├── engine/
-│   ├── __init__.py
-│   ├── geometria.py
 │   ├── gerador_ficha.py
+│   ├── geometria.py
 │   ├── omr.py
+│   ├── leitor.py
 │   ├── pdf_reader.py
 │   ├── fichas_manager.py
-│   ├── leitor.py
-│   └── sheets.py
+│   ├── sheets.py
+│   ├── google_sheets_webapp.py
+│   └── pacote_pesquisa.py
 │
 ├── ui/
-│   ├── __init__.py
 │   ├── main_window.py
-│   ├── viewer.py
+│   ├── formulario_ficha.py
 │   ├── form_panel.py
-│   └── formulario_ficha.py
+│   └── viewer.py
 │
-├── assets/
-├── fichas/
-├── temp/
-├── uploads/
-└── area_omr.py
+├── config/
+├── area_omr.py
+├── app.py
+├── requirements.txt
+├── README.md
+└── CONTINUIDADE.md
 ```
-
-Existem também diversos scripts de teste e diagnóstico na raiz.
-
-Eles ainda não foram totalmente limpos.
-
-`area_omr.py` foi criado inicialmente como diagnóstico da área OMR e posteriormente integrado ao aplicativo como funcionalidade permanente.
 
 ---
 
-# 5. ESTADO DO GIT E REPOSITÓRIO
+# 5. Regra de desenvolvimento durante estabilização
 
-O SDIP 2.0 está atualmente sendo mantido no repositório Git configurado no projeto.
+Até concluir os testes reais do MVP:
 
-O histórico anterior do SDIP 1.0 deve permanecer preservado e não deve ser misturado conceitualmente com a versão 2.0.
+**não refatorar código funcional apenas por organização.**
 
-Antes de alterações importantes:
+Alterações permitidas:
 
-```powershell
-git status
-git log --oneline -5
-git remote -v
-```
+* bugs comprovados;
+* erros que bloqueiem o fluxo;
+* correções exigidas pelos testes reais;
+* ajustes mínimos necessários para empacotamento/distribuição.
 
-Não executar comandos destrutivos sem explicar primeiro.
+Não realizar agora:
 
-Não inventar o nome ou conteúdo do último commit. Verificar o estado real do repositório.
+* reorganização arquitetural ampla;
+* divisão de arquivos apenas porque ficaram grandes;
+* criação de abstrações sem necessidade;
+* troca de soluções já validadas;
+* otimizações sem problema demonstrado.
 
 ---
 
-# 6. GERADOR DE FICHA — ESTADO ATUAL
+# 6. Componentes críticos protegidos
 
-O arquivo responsável é:
+Os arquivos abaixo formam o núcleo físico já validado:
 
 ```text
 engine/gerador_ficha.py
+engine/geometria.py
+engine/omr.py
 ```
 
-O gerador atualmente consegue:
+Eles não devem ser modificados antes dos testes reais, exceto se existir um bug reproduzível.
 
-* receber perguntas;
-* receber tipo de resposta;
-* receber opções;
-* receber seções;
-* receber perguntas abertas;
-* receber campos de identificação;
-* receber tamanho de fonte;
-* gerar uma ou várias páginas;
-* distribuir perguntas automaticamente em duas colunas;
-* gerar caixas OMR;
-* registrar coordenadas;
-* gerar ArUcos;
-* registrar os ArUcos;
-* gerar mapa OMR;
-* registrar perguntas abertas;
-* registrar campos de identificação;
-* criar cabeçalho configurável;
-* incluir logo;
-* gerar imagens das páginas;
-* gerar PDF a partir das páginas produzidas.
-
-O usuário não deve configurar coordenadas manualmente.
-
----
-
-# 7. LAYOUT DA FICHA
-
-A ficha utiliza duas colunas independentes.
+Parâmetros OMR atualmente validados:
 
 ```text
-┌──────────────────────┬──────────────────────┐
-│ Coluna esquerda      │ Coluna direita       │
-│                      │                      │
-│ perguntas de cima    │ perguntas de cima    │
-│ para baixo           │ para baixo           │
-│                      │                      │
-└──────────────────────┴──────────────────────┘
+Margem interna: 7 px
+Threshold de pixel escuro: 150
+Limiar de marcação: 5%
 ```
 
-Existe uma linha central imaginária.
-
-Nenhuma pergunta da coluna esquerda pode ultrapassar essa linha.
-
-Nenhuma pergunta da coluna direita pode invadir a coluna esquerda.
-
-A ordem é:
+Resolução normalizada:
 
 ```text
-1. preencher coluna esquerda
-
-2. quando não couber a próxima pergunta:
-   continuar no topo da coluna direita
-
-3. quando as duas colunas acabarem:
-   criar nova página
+1191 × 1684
 ```
 
-Uma pergunta não deve ser dividida entre colunas.
-
-Uma pergunta não deve ser dividida entre páginas.
-
-O sistema deve continuar funcionando independentemente da quantidade de perguntas.
-
----
-
-# 8. QUANTIDADE DE PERGUNTAS E PAGINAÇÃO
-
-A quantidade de perguntas não é fixa.
-
-O `GeradorFicha` deve aceitar poucas ou muitas perguntas e decidir automaticamente quantas páginas são necessárias.
-
-O sistema foi validado com fichas de uma e duas páginas.
-
-Também foi validada a mudança do tamanho da fonte:
-
-```text
-Fonte maior
-
-    ↓
-
-ficha passa para 2 páginas
-
-    ↓
-
-mapeamento continua correto
-```
-
-Depois:
-
-```text
-Fonte reduzida
-
-    ↓
-
-ficha volta para 1 página
-
-    ↓
-
-mapeamento continua correto
-```
-
-Conclusão atual:
-
-**A paginação e o mapeamento das caixas OMR permanecem corretos quando a ficha ocupa uma ou duas páginas e quando a alteração da fonte muda essa quantidade.**
-
-O aproveitamento de espaço ainda pode ser melhorado futuramente, mas não é prioridade neste momento.
-
----
-
-# 9. TESTE TÉCNICO ATUAL DO GERADOR
-
-Existem scripts históricos e de diagnóstico relacionados à geração da ficha.
-
-O arquivo `teste_gerador_ficha.py` é um teste técnico e não representa a interface final do usuário.
-
-O fluxo atual da aplicação utiliza o `GeradorFicha` por meio do `FormularioFicha` e do `MainWindow`.
-
----
-
-# 10. FLUXO ATUAL DE CRIAÇÃO DE FICHA
-
-A interface de criação já foi implementada.
-
-Fluxo atual:
-
-```text
-Abrir SDIP
-
-        ↓
-
-Criar nova ficha
-
-        ↓
-
-Informar nome da pesquisa
-
-        ↓
-
-Informar título opcional
-
-        ↓
-
-Adicionar seções, se necessário
-
-        ↓
-
-Adicionar perguntas
-
-        ↓
-
-Definir tipo de resposta
-
-        ↓
-
-Marcar pergunta aberta, se necessário
-
-        ↓
-
-Adicionar opções
-
-        ↓
-
-Gerar ficha
-
-        ↓
-
-Gerador calcula automaticamente:
-
-    - layout
-    - páginas
-    - caixas OMR
-    - ArUcos
-    - mapa
-    - perguntas abertas
-    - cabeçalho
-
-        ↓
-
-Ficha pronta
-```
-
-O usuário não deve configurar coordenadas manualmente.
-
----
-
-# 11. SEÇÕES
-
-Seções são opcionais.
-
-Sem seção:
-
-```text
-1 Pergunta
-2 Pergunta
-3 Pergunta
-```
-
-Com seção:
-
-```text
-1. Situação da obra
-
-1.1 Pergunta
-1.2 Pergunta
-1.3 Pergunta
-
-2. Qualidade da reforma
-
-2.1 Pergunta
-2.2 Pergunta
-2.3 Pergunta
-```
-
-As seções são utilizadas para organização visual e numeração.
-
-**As seções não recebem caixas OMR próprias e não geram colunas na planilha.**
-
----
-
-# 12. PERGUNTAS ABERTAS
-
-Perguntas podem ser marcadas no editor como:
-
-```text
-[X] Resposta aberta
-```
-
-Quando uma pergunta é aberta:
-
-* as opções OMR são ocultadas no editor;
-* nenhuma caixa OMR é criada para ela;
-* uma área de resposta manuscrita é reservada na ficha;
-* a pergunta é registrada em `perguntas_abertas`;
-* o mapa informa o número da pergunta e a página;
-* o painel do leitor possui campo específico para essa resposta.
-
-Exemplo:
-
-```text
-2.3 Qual serviço público precisa de atenção?
-
-__________________________________________
-```
-
-O teste inicial da funcionalidade já foi realizado.
-
-O fluxo completo ainda precisa ser validado fisicamente junto com:
-
-```text
-OMR
-+
-identificação
-+
-data
-+
-resposta aberta
-+
-validação
-+
-salvamento
-```
-
----
-
-# 13. CABEÇALHO CONFIGURÁVEL
-
-O cabeçalho da versão 2.0 não deve depender do padrão fixo do SDIP 1.0.
-
-O usuário que cria a ficha pode definir quais campos deseja utilizar.
-
-Exemplos:
-
-```text
-Nome do morador
-Data
-Código
-Comunidade
-Entrevistador
-Bairro
-Número do imóvel
-Identificador
-```
-
-Os campos definidos devem aparecer:
-
-```text
-na ficha impressa
-
-        +
-
-no painel do leitor
-
-        +
-
-no resultado final
-
-        +
-
-na estrutura da planilha
-```
-
-Os campos antigos da versão 1.0:
-
-```text
-Data
-Número do Selo
-Comunidade
-Nome do Morador
-Entrevistador
-```
-
-não devem mais ser tratados como campos obrigatórios do sistema 2.0.
-
-Eles são apenas exemplos de campos que podem ser cadastrados.
-
----
-
-# 14. CABEÇALHO E MAPEAMENTO OMR
-
-O cabeçalho é visual e não participa diretamente das coordenadas das caixas OMR.
-
-A lógica geométrica continua baseada nos ArUcos e na transformação da página para 1191 × 1684.
-
-Portanto:
-
-```text
-Cabeçalho
-
-    ↓
-
-não define as coordenadas OMR
-
-ArUcos
-
-    ↓
-
-definem a transformação geométrica
-
-Mapa
-
-    ↓
-
-define as caixas na imagem normalizada
-
-OMR
-
-    ↓
-
-lê as caixas
-```
-
-Alterações no cabeçalho não devem exigir recalibração do OMR desde que não alterem:
-
-* posição dos ArUcos;
-* dimensões da página;
-* transformação geométrica;
-* posição real das caixas.
-
----
-
-# 15. LOGO
-
-A logo passou a fazer parte do cabeçalho.
-
-A lógica atual coloca a logo em uma área reservada ao lado do bloco de título/nome, sem ocupar o espaço do ArUco superior esquerdo.
-
-O tamanho da logo é adaptado proporcionalmente à área reservada.
-
-A posição atual foi considerada satisfatória por enquanto.
-
-Melhorias visuais futuras:
-
-* deixar a área mais quadrada;
-* testar PNG real;
-* melhorar adaptação automática;
-* refinamento visual.
-
-Essas melhorias não são prioridade atual.
-
----
-
-# 16. EDIÇÃO DA FICHA
-
-A aplicação possui suporte para editar a ficha.
-
-O `FormularioFicha` consegue receber `dados_iniciais` e reconstruir a estrutura da ficha.
-
-O usuário pode:
-
-* alterar o nome;
-* alterar o título;
-* alterar seções;
-* alterar perguntas;
-* alterar opções;
-* transformar uma pergunta em aberta;
-* remover elementos;
-* adicionar novos elementos;
-* gerar novamente.
-
-Fluxo em rascunho:
-
-```text
-Criar ficha
-    ↓
-Gerar
-    ↓
-Visualizar
-    ↓
-Editar ficha
-    ↓
-Gerar novamente
-```
-
-A estrutura de gerenciamento de fichas já fornece um identificador para cada ficha.
-
----
-
-# 17. ARUCO — ESTADO VALIDADO
-
-A ficha utiliza quatro ArUcos por página.
-
-Dicionário:
+ArUco:
 
 ```text
 DICT_4X4_50
 ```
 
-Disposição:
-
-```text
-0 ---------------- 1
-
-|                  |
-
-|                  |
-
-|                  |
-
-3 ---------------- 2
-```
-
-O `gerador_ficha.py` gera esses quatro ArUcos automaticamente.
-
----
-
-# 18. DETECÇÃO GEOMÉTRICA
-
-O arquivo atual:
-
-```text
-engine/geometria.py
-```
-
-usa a detecção real de ArUco do OpenCV.
-
-Versão validada do OpenCV:
+OpenCV validado:
 
 ```text
 4.12.0
 ```
 
-API utilizada:
-
-```python
-cv2.aruco.ArucoDetector
-```
-
-A geometria trabalha com os IDs reais dos marcadores.
-
-Isso substituiu a estratégia anterior baseada apenas em contornos quadrados.
-
-Essa alteração foi necessária porque os ArUcos possuem diversos contornos internos e o detector antigo podia escolher um quadrado errado, produzindo uma homografia incorreta.
-
 ---
 
-# 19. GEOMETRIA POR PÁGINA
+# 7. Validação física já realizada
 
-A geometria foi adaptada para receber a página atual.
-
-Cada página utiliza o conjunto correspondente de IDs ArUco.
-
-O fluxo é:
+## Ficha branca de duas páginas
 
 ```text
-Página 1
-    ↓
-IDs correspondentes à página 1
-    ↓
-Homografia
-    ↓
-Normalização
-
-Página 2
-    ↓
-IDs correspondentes à página 2
-    ↓
-Homografia
-    ↓
-Normalização
-```
-
-Cada página é corrigida individualmente.
-
-Uma página torta não deve afetar geometricamente outra.
-
-Essa arquitetura foi testada com uma ficha de duas páginas.
-
----
-
-# 20. NORMALIZAÇÃO GEOMÉTRICA
-
-A imagem escaneada é normalizada para:
-
-```text
-1191 × 1684
-```
-
-Fluxo:
-
-```text
-PDF
-
-↓
-
-renderização da página
-
-↓
-
-detecção dos ArUcos
-
-↓
-
-identificação dos IDs da página
-
-↓
-
-centros dos ArUcos
-
-↓
-
-homografia
-
-↓
-
-normalização
-
-↓
-
-1191 × 1684
-
-↓
-
-OMR
-```
-
-A normalização individual por página está funcionando.
-
----
-
-# 21. MAPA OMR AUTOMÁTICO
-
-O mapa OMR deixou de ser exclusivamente manual.
-
-O arquivo:
-
-```text
-engine/gerador_ficha.py
-```
-
-gera automaticamente as coordenadas das caixas.
-
-Cada coordenada possui:
-
-```text
-nome
-pagina
-x1
-y1
-x2
-y2
-```
-
-O mapa também registra:
-
-```text
-imagem_largura
-imagem_altura
-quantidade_paginas
-aruco
-coordenadas
-perguntas_abertas
-campos_identificacao
-```
-
-Cada ficha possui seu mapa correspondente.
-
-O usuário não precisa mapear manualmente cada caixa.
-
----
-
-# 22. IMPORTANTE — RELAÇÃO ENTRE MAPA E GEOMETRIA
-
-O mapa representa as coordenadas da ficha normalizada.
-
-A geometria corrige a imagem escaneada para:
-
-```text
-1191 × 1684
-```
-
-Depois dessa correção, o mapa pode ser utilizado pelo OMR.
-
-Não aplicar uma segunda transformação arbitrária ao mapa.
-
-A separação correta é:
-
-```text
-Geometria
-→ corrige a imagem
-
-Mapa
-→ descreve onde estão as caixas na imagem normalizada
-
-OMR
-→ lê as caixas
-```
-
-Essa relação foi validada visualmente.
-
----
-
-# 23. OMR — ESTADO ATUAL
-
-O arquivo principal é:
-
-```text
-engine/omr.py
-```
-
-O sistema:
-
-* carrega o mapa;
-* converte a imagem para tons de cinza;
-* recorta cada caixa;
-* remove a margem interna;
-* conta pixels escuros;
-* calcula percentual;
-* classifica como `MARCADA` ou `VAZIA`.
-
----
-
-# 24. CALIBRAÇÃO DO OMR
-
-## Threshold de marcação
-
-O threshold atualmente validado é:
-
-```text
-5.0%
-```
-
-Código equivalente:
-
-```python
-marcada = percentual >= 5.0
-```
-
-Esse valor não deve ser alterado sem nova calibração.
-
----
-
-# 25. CALIBRAÇÃO DA MARGEM INTERNA
-
-Foi identificado um problema de falso positivo causado pela borda preta da própria caixa OMR.
-
-Foram realizados testes com ficha em branco:
-
-```text
-Margem 4 → 22 marcadas
-
-Margem 5 → 2 marcadas
-
-Margem 6 → 1 marcada
-
-Margem 7 → 0 marcadas
-
-Margem 8 → 0 marcadas
-
-Margem 10 → 0 marcadas
-```
-
-Foi escolhido:
-
-```text
-MARGEM = 7
-```
-
-porque é o menor valor que eliminou todos os falsos positivos na ficha branca.
-
-O valor atualmente aplicado no `engine/omr.py` é:
-
-```python
-margem=7
-```
-
-Parâmetros atuais:
-
-```text
-Margem interna: 7 pixels
-Threshold de pixel escuro: 150
-Limiar de marcação: 5%
-```
-
-Caso ocorram futuros falsos positivos, o primeiro parâmetro a investigar deve ser a margem interna da caixa, utilizando novamente uma ficha branca e uma ficha preenchida para recalibração.
-
----
-
-# 26. CAIXA OMR — ESTADO VISUAL
-
-A caixa OMR passou por ajustes visuais.
-
-O estado atual deve ser:
-
-```text
-[ ]
-```
-
-Não deve existir um segundo quadrado visível dentro da caixa.
-
-A área efetivamente analisada pelo OMR continua sendo definida logicamente pela margem interna.
-
-Também foi aumentado o espaçamento vertical das opções para evitar caixas visualmente próximas demais.
-
-Essas alterações não modificaram a lógica do mapa.
-
----
-
-# 27. VISUALIZAÇÃO "ONDE DEVO MARCAR?"
-
-A aplicação possui uma funcionalidade permanente chamada:
-
-```text
-Onde devo marcar?
-```
-
-Ela fica dentro do fluxo de **Visualizar ficha ativa**.
-
-A funcionalidade mostra a ficha atual com a área analisada pelo OMR destacada em vermelho.
-
-Objetivos:
-
-* mostrar ao usuário onde deve marcar;
-* validar visualmente o mapa;
-* confirmar o alinhamento das caixas;
-* facilitar diagnóstico;
-* validar alterações de layout.
-
-Importante:
-
-```text
-Vermelho aparece SOMENTE na visualização.
-
-PDF original permanece normal.
-
-Ficha impressa permanece normal.
-```
-
-O diagnóstico não altera o PDF da ficha.
-
-`area_omr.py` permanece como funcionalidade do aplicativo.
-
-O recurso deve sempre utilizar a ficha ativa atual, e não um exemplo genérico.
-
----
-
-# 28. VALIDAÇÃO VISUAL DO MAPEAMENTO
-
-A visualização `Onde devo marcar?` foi utilizada para validar o mapa atual.
-
-Foram testados:
-
-```text
-Ficha de 1 página
-→ áreas vermelhas alinhadas corretamente
-```
-
-```text
-Ficha de 2 páginas
-→ áreas vermelhas alinhadas corretamente
-```
-
-```text
-Fonte maior
-→ ficha passa para 2 páginas
-→ áreas vermelhas continuam corretas
-```
-
-```text
-Fonte reduzida
-→ ficha volta para 1 página
-→ áreas vermelhas continuam corretas
-```
-
-Conclusão atual:
-
-**O mapeamento está visualmente correto e calibrado para a arquitetura atual do gerador, geometria e OMR.**
-
-Isso não substitui o teste físico final com scanner.
-
----
-
-# 29. VALIDAÇÃO FÍSICA ATUAL — FICHA VAZIA
-
-Foi realizado um teste recente com uma ficha vazia de duas páginas.
-
-Resultado:
-
-```text
-PÁGINA 1
-
-Total: 70
-Marcadas: 0
-Vazias: 70
-```
-
-```text
-PÁGINA 2
-
-Total: 70
-Marcadas: 0
-Vazias: 70
-```
-
-Resultado consolidado:
-
-```text
-Total: 140
+Total de caixas: 140
 Marcadas: 0
 Vazias: 140
 ```
 
 Resultado:
 
-**0 falsos positivos.**
+```text
+0 falsos positivos
+```
 
-Esse teste confirmou o funcionamento do OMR em uma ficha vazia de duas páginas.
+## Teste físico anterior
 
----
-
-# 30. VALIDAÇÃO FÍSICA HISTÓRICA
-
-Também foram realizados testes físicos anteriores com ficha preenchida.
+```text
+Marcações reais: 12
+Marcações reconhecidas: 12
+```
 
 Resultado:
 
 ```text
-Total de caixas: 50
-Marcadas: 12
-Vazias: 38
-```
-
-As 12 marcações realizadas foram identificadas corretamente.
-
-Resultado validado:
-
-```text
 12/12
-100% das marcações reais detectadas
+100%
 ```
 
-Esse continua sendo um dos principais resultados físicos do núcleo OMR.
-
-Esse teste é histórico e não substitui o novo teste físico com a ficha atual.
+Esses resultados não substituem a nova validação nas máquinas e no fluxo real de trabalho.
 
 ---
 
-# 31. TESTE REDUZIDO DO OMR
+# 8. Criação de pesquisas
 
-Também foi realizado um teste específico com uma ficha contendo 3 caixas OMR.
+O editor permite configurar:
 
-Ficha branca:
+* nome da pesquisa;
+* título;
+* logo;
+* tamanho da fonte;
+* campos de identificação;
+* tipos dos campos;
+* campos de data;
+* seções;
+* perguntas fechadas;
+* respostas únicas;
+* respostas múltiplas;
+* perguntas abertas;
+* opções;
+* campos utilizados para nomear o PDF.
 
-```text
-Total: 3
-Marcadas: 0
-Vazias: 3
-```
+O sistema gera automaticamente:
 
-Ficha marcada:
-
-```text
-Total: 3
-Marcadas: 1
-Vazias: 2
-```
-
-A única marcação realizada foi reconhecida corretamente.
-
-Esse teste serviu para validar o fluxo atual do gerador, mapa, geometria e OMR.
-
----
-
-# 32. CONFIGURAÇÃO DE IMPRESSÃO
-
-Para preservar as coordenadas:
-
-```text
-Papel: A4
-Orientação: Retrato
-Escala: 100%
-Tamanho real
-```
-
-Não utilizar:
-
-```text
-Ajustar à página
-Fit to page
-Reduzir para caber
-Preencher página
-Escala automática
-```
-
-Qualquer alteração de escala pode alterar a relação entre a ficha física e as coordenadas do mapa.
+* layout;
+* duas colunas;
+* paginação;
+* caixas OMR;
+* ArUcos;
+* coordenadas;
+* mapa OMR;
+* áreas de perguntas abertas;
+* cabeçalho;
+* PDF.
 
 ---
 
-# 33. SCANNER — ESTADO ATUAL
+# 9. Rascunho, produção e versão
 
-Os testes físicos anteriores compararam:
-
-```text
-200 DPI
-400 DPI
-600 DPI
-```
-
-A configuração atual utilizada nos testes principais é:
+Fluxo conceitual:
 
 ```text
-600 DPI
-PDF
+RASCUNHO
+    ↓
+geração
+    ↓
+validação
+    ↓
+PRODUÇÃO
 ```
 
-O próximo teste prioritário é realizar novamente o fluxo com o scanner real usando a ficha atual.
+Uma ficha em produção representa uma estrutura de coleta já definida.
+
+Alterações estruturais posteriores devem gerar:
+
+```text
+NOVA VERSÃO
+```
+
+A nova versão:
+
+* mantém o `pesquisa_id`;
+* incrementa a versão;
+* registra a versão anterior;
+* volta para RASCUNHO;
+* não reutiliza automaticamente a planilha da versão anterior.
+
+---
+
+# 10. Planilha XLSX
+
+O destino local continua disponível.
+
+A estrutura é derivada diretamente da ficha:
+
+```text
+campos de identificação
+        ↓
+perguntas
+```
+
+Seções não geram colunas.
+
+Cada ficha processada gera uma nova linha.
+
+A planilha possui:
+
+* cabeçalho fixo;
+* primeira linha congelada;
+* filtros;
+* largura de colunas;
+* tratamento de dados;
+* compatibilidade com Excel.
+
+A ficha é a fonte de verdade da estrutura tabular.
+
+---
+
+# 11. Google Sheets
+
+Integração implementada através de:
+
+```text
+Google Sheets
+        +
+Google Apps Script
+        +
+Web App
+```
+
+Arquivo:
+
+```text
+engine/google_sheets_webapp.py
+```
 
 Fluxo:
 
 ```text
-Ficha atual
-
-    ↓
-
-Impressão
-
-    ↓
-
-Preenchimento manual
-
-    ↓
-
-Scanner
-
-    ↓
-
-PDF
-
-    ↓
-
-Detecção dos ArUcos
-
-    ↓
-
-Geometria
-
-    ↓
-
-Normalização
-
-    ↓
-
-OMR
-```
-
-Objetivo:
-
-**confirmar definitivamente no fluxo físico completo que o mapeamento atual continua correto após o escaneamento.**
-
-Não alterar `geometria.py` ou `omr.py` antes desse teste, salvo se o teste revelar um problema real.
-
----
-
-# 34. INTERFACE ATUAL
-
-A interface utiliza:
-
-```text
-CustomTkinter
-```
-
-Arquivos principais:
-
-```text
-ui/main_window.py
-ui/viewer.py
-ui/form_panel.py
-ui/formulario_ficha.py
-```
-
-O `MainWindow` atualmente consegue:
-
-* criar ficha;
-* editar a ficha;
-* gerar PDF;
-* gerar mapa;
-* definir ficha ativa;
-* visualizar ficha ativa;
-* navegar entre páginas;
-* carregar um PDF;
-* carregar o mapa da ficha;
-* mostrar campos de identificação;
-* mostrar perguntas abertas;
-* exportar o PDF;
-* abrir a visualização `Onde devo marcar?`;
-* integrar a leitura OMR;
-* gerar/vincular a planilha da pesquisa;
-* salvar os resultados lidos na planilha;
-* trabalhar com ficha em rascunho e produção;
-* iniciar nova versão de ficha quando necessário.
-
----
-
-# 35. VISUALIZAÇÃO DA FICHA ATIVA
-
-O fluxo `Visualizar ficha ativa` deve continuar utilizando:
-
-```text
-ficha ativa
-
-+
-
-PDF da ficha ativa
-
-+
-
-mapa da ficha ativa
-```
-
-O botão `Onde devo marcar?` fica dentro desse fluxo.
-
-O recurso não deve usar uma ficha de exemplo genérica.
-
-Além da utilidade para o usuário, essa função serve como diagnóstico visual para verificar se o mapa da ficha atual está correto.
-
----
-
-# 36. PROCESSAMENTO MULTIPÁGINA
-
-O núcleo de testes possui suporte para processar páginas individualmente.
-
-Regra:
-
-```text
-Página 1
-→ geometria independente
-→ OMR
-
-Página 2
-→ geometria independente
-→ OMR
-
-Página 3
-→ geometria independente
-→ OMR
-```
-
-Uma página torta não deve afetar outra.
-
-O gerador também cria páginas adicionais automaticamente quando necessário.
-
-A existência de duas páginas não é um bug do produto.
-
-O teste de ficha vazia de duas páginas funcionou corretamente.
-
-A integração completa desse fluxo no leitor final ainda precisa ser confirmada no novo teste físico prioritário com scanner.
-
----
-
-# 37. LEITOR E DADOS DE IDENTIFICAÇÃO
-
-O `FormPanel` possui elementos herdados da versão 1.0, mas o objetivo do 2.0 é que os campos exibidos no leitor sejam determinados pela ficha ativa.
-
-Já existe estrutura para:
-
-```text
-campos_identificacao
-perguntas_abertas
-```
-
-O resultado final deve receber dinamicamente os campos da ficha ativa.
-
-Não utilizar como padrão obrigatório os campos fixos antigos:
-
-```text
-Data
-Número do Selo
-Comunidade
-Nome do Morador
-Entrevistador
-```
-
-Esses campos são apenas exemplos possíveis de configuração da ficha.
-
----
-
-# 38. FLUXO FINAL DA LEITURA
-
-O objetivo é produzir um registro único contendo:
-
-```text
-Identificação da ficha
-
-+
-
-Campos do cabeçalho
-
-+
-
-Respostas fechadas
-
-+
-
-Respostas abertas
-```
-
-Exemplo conceitual:
-
-```text
-Campo: Nome
-
-Valor: João da Silva
-
-Campo: Comunidade
-
-Valor: Comunidade X
-
-1.1_sim
-
-MARCADA
-
-1.2_nao
-
-VAZIA
-
-2.3
-
-Resposta aberta:
-
-"muita coisa"
-```
-
-Esse registro deve ser validado antes de ser salvo ou enviado para um destino externo.
-
----
-
-# 39. SAÍDA TABULAR E PLANILHA
-
-A primeira versão funcional da saída local dos resultados foi concluída.
-
-A planilha passou a ser derivada diretamente da estrutura criada pelo usuário no editor de fichas.
-
-O formato principal passou a ser:
-
-```text
-.xlsx
-```
-
-A estrutura da planilha não é um modelo fixo.
-
-A ficha é a fonte de verdade.
-
----
-
-# 40. ESTRUTURA DA PLANILHA
-
-A ordem das colunas deve ser exatamente a ordem dos elementos de dados da ficha:
-
-```text
-Campos do cabeçalho
+usuário cria Google Sheet
         ↓
-Perguntas
+SDIP gera chave + Apps Script
+        ↓
+usuário publica como Web App
+        ↓
+obtém URL /exec
+        ↓
+SDIP testa conexão
+        ↓
+SDIP vincula pesquisa
 ```
 
-As seções são exclusivamente visuais e não geram colunas.
+A aplicação utiliza:
 
-Exemplo de ficha:
+* chave de integração;
+* URL do Web App;
+* cabeçalhos esperados;
+* validação de estrutura antes de inserir registros.
 
-```text
-Cabeçalho:
+A implementação utiliza a biblioteca padrão `urllib`.
 
-Data
-Número do Selo
-Comunidade
-Nome do Morador
-Entrevistador
-
-Seção 1 - Obras
-
-1.1 A obra foi concluída?
-1.2 A obra ficou boa?
-1.3 Houve algum problema?
-
-Seção 2 - Qualidade
-
-2.1 Como avalia a qualidade?
-2.2 O serviço atendeu à expectativa?
-```
-
-A planilha correspondente deve ter:
-
-```text
-A1 = Data
-B1 = Número do Selo
-C1 = Comunidade
-D1 = Nome do Morador
-E1 = Entrevistador
-F1 = 1.1 A obra foi concluída?
-G1 = 1.2 A obra ficou boa?
-H1 = 1.3 Houve algum problema?
-I1 = 2.1 Como avalia a qualidade?
-J1 = 2.2 O serviço atendeu à expectativa?
-```
-
-As seções:
-
-```text
-Seção 1 - Obras
-Seção 2 - Qualidade
-```
-
-não aparecem como colunas.
-
-Não criar colunas artificiais como `Ficha ID` ou `Pesquisa`, salvo quando esses campos existirem realmente na ficha.
+Não depende de faturamento do Google Cloud.
 
 ---
 
-# 41. LINHA 1 E REGISTROS
+# 12. Proteção da estrutura do Google Sheets
 
-A primeira linha da planilha representa a estrutura fixa da pesquisa.
+Antes do salvamento, o SDIP compara:
 
 ```text
-Linha 1 = nomes das colunas
-Linha 2 = primeira ficha lida
-Linha 3 = segunda ficha lida
-Linha 4 = terceira ficha lida
+estrutura esperada
+        ×
+estrutura encontrada
+```
+
+São validados:
+
+* títulos;
+* quantidade;
+* ordem das colunas.
+
+Se houver divergência:
+
+```text
+salvamento bloqueado
+```
+
+O sistema apresenta diagnóstico em vez de gravar dados em colunas incorretas.
+
+Esse comportamento já foi testado alterando propositalmente cabeçalhos.
+
+---
+
+# 13. Uso em vários computadores
+
+O Google Sheets permite:
+
+```text
+Máquina A ─┐
+           │
+Máquina B ─┼──→ mesma planilha
+           │
+Máquina C ─┘
+```
+
+O Apps Script utiliza `LockService` para reduzir conflitos em gravações concorrentes.
+
+Ainda precisa ser validado em máquinas físicas diferentes no ambiente de trabalho.
+
+---
+
+# 14. Pacotes .sdip
+
+Foi implementada exportação/importação de pesquisas através do formato:
+
+```text
+.sdip
+```
+
+Arquivo:
+
+```text
+engine/pacote_pesquisa.py
+```
+
+O pacote preserva:
+
+* `ficha_id`;
+* `pesquisa_id`;
+* versão;
+* estrutura;
+* PDF;
+* mapa OMR;
+* logo;
+* configuração Google;
+* regra de nomeação dos PDFs.
+
+Configurações específicas do computador não devem viajar no pacote.
+
+Exemplos:
+
+```text
+caminho do XLSX local
+pasta dos PDFs processados
+```
+
+Também existem verificações contra:
+
+* pacote inválido;
+* corrupção;
+* pesquisa duplicada;
+* ficha duplicada.
+
+---
+
+# 15. Campos manuais vazios
+
+Antes de salvar, o SDIP verifica:
+
+* campos de identificação;
+* perguntas abertas.
+
+Se existirem campos vazios:
+
+```text
+uma única confirmação
+        ↓
+lista todos os campos vazios
+```
+
+Escolha `Não`:
+
+```text
+não salva
+não perde os dados
+```
+
+Escolha `Sim`:
+
+```text
+salva mesmo com campos vazios
+```
+
+Perguntas OMR sem marcação não entram nessa confirmação.
+
+---
+
+# 16. Datas
+
+Campos configurados como data utilizam:
+
+```text
+DD/MM/AAAA
+```
+
+O SDIP valida:
+
+* formato;
+* ano com quatro dígitos;
+* dia;
+* mês;
+* existência real da data.
+
+Data preenchida de forma inválida bloqueia o salvamento.
+
+Campo de data vazio continua permitido mediante a confirmação de campos manuais vazios.
+
+---
+
+# 17. Opção Manter
+
+Campos de identificação possuem:
+
+```text
+[ ] Manter
+```
+
+Depois de um salvamento bem-sucedido:
+
+```text
+campo marcado como Manter
+→ permanece preenchido
+
+campo não marcado
+→ é limpo
+
+pergunta aberta
+→ é limpa
+```
+
+A configuração é temporária da sessão.
+
+Ela não altera:
+
+* ficha;
+* `.sdip`;
+* XLSX;
+* Google Sheets.
+
+---
+
+# 18. Nome automático do PDF
+
+Durante a criação da pesquisa, campos de identificação podem receber:
+
+```text
+[ ] Nome do PDF
+```
+
+Os campos selecionados definem o nome do PDF processado.
+
+Exemplo:
+
+```text
+Código = 00152
+Nome = Maria Silva
+```
+
+Resultado:
+
+```text
+00152_Maria Silva.pdf
+```
+
+Regras:
+
+* vários campos são permitidos;
+* ordem igual à ordem do cabeçalho;
+* campos vazios são ignorados;
+* se todos estiverem vazios, usa o nome original;
+* caracteres inválidos do Windows são tratados;
+* arquivos nunca são sobrescritos.
+
+Colisões:
+
+```text
+arquivo.pdf
+arquivo_2.pdf
+arquivo_3.pdf
+```
+
+---
+
+# 19. Pasta dos PDFs processados
+
+Cada pesquisa possui uma pasta de destino configurada localmente em cada computador.
+
+A configuração não é incluída no `.sdip`.
+
+Persistência local:
+
+```text
+%LOCALAPPDATA%\SDIP\config_local.json
+```
+
+com fallback local quando necessário.
+
+A configuração é associada ao `pesquisa_id`.
+
+Pode ser utilizada uma pasta de rede.
+
+Se o destino estiver indisponível:
+
+```text
+solicitar outro local
+ou
+cancelar
+```
+
+Nunca salvar silenciosamente em outro lugar.
+
+---
+
+# 20. Segurança do salvamento
+
+O salvamento combina:
+
+```text
+registro de dados
+        +
+arquivamento do PDF processado
+```
+
+Em caso de falha de persistência:
+
+* não avançar;
+* manter os dados;
+* manter o resultado OMR;
+* evitar cópia órfã do PDF;
+* permitir correção e nova tentativa.
+
+---
+
+# 21. Fila de múltiplos PDFs
+
+Última funcionalidade obrigatória do MVP implementada.
+
+A seleção utiliza múltiplos arquivos:
+
+```text
+Selecionar ficha(s) PDF
+```
+
+É possível selecionar:
+
+```text
+1 PDF
+ou
+vários PDFs
+```
+
+Com vários arquivos:
+
+```text
+Arquivo 1 de N
+Arquivo 2 de N
+Arquivo 3 de N
 ...
 ```
 
-Exemplo:
+Fluxo:
 
 ```text
-A1 = Data
-B1 = Número do Selo
-C1 = Comunidade
-D1 = Nome do Morador
-E1 = Entrevistador
-F1 = 1.1 A obra foi concluída?
-```
-
-Primeiro registro:
-
-```text
-A2 = 23/08/2026
-B2 = 12345
-C2 = Comunidade X
-D2 = João
-E2 = Maria
-F2 = Sim
-```
-
-Segundo registro:
-
-```text
-A3 = 24/08/2026
-B3 = 12346
-C3 = Comunidade Y
-D3 = Pedro
-E3 = Ana
-F3 = Não
-```
-
-Cada ficha processada deve acrescentar uma nova linha.
-
-O sistema não deve recriar ou duplicar o cabeçalho durante a leitura.
-
----
-
-# 42. FORMATO E COMPATIBILIDADE DA PLANILHA
-
-A planilha `.xlsx` deve possuir:
-
-```text
-✅ primeira linha como cabeçalho
-✅ primeira linha congelada
-✅ filtro automático
-✅ uma coluna por campo/pergunta
-✅ uma linha por ficha processada
-✅ largura das colunas ajustada
-✅ datas tratadas como datas Excel quando aplicável
-```
-
-Foi identificado um problema de compatibilidade XML que fazia o Excel remover partes de `styles.xml` e substituir conteúdo de `sheet1.xml`.
-
-O problema estava relacionado à ordem de elementos no XML OOXML.
-
-A correção foi aplicada em:
-
-```text
-engine/sheets.py
-```
-
-Depois da correção, o arquivo `.xlsx` foi validado e reaberto corretamente.
-
----
-
-# 43. PRODUÇÃO DA FICHA E PLANILHA
-
-O fluxo desejado é:
-
-```text
-Criar ficha
-    ↓
-Gerar ficha
-    ↓
-Visualizar ficha
-    ↓
-Confirmar ficha para produção
-    ↓
-Gerar planilha
-    ↓
-Usuário escolhe onde salvar o .xlsx
-    ↓
-Ficha fica vinculada à planilha
-```
-
-O SDIP deve guardar o caminho da planilha vinculada àquela ficha/versão.
-
-Depois:
-
-```text
-Ficha escaneada
-    ↓
-Leitura OMR
-    ↓
-Campos digitados
-    ↓
-Registro final
-    ↓
-Adicionar nova linha à planilha vinculada
-```
-
-O sistema não deve pedir novamente o destino em cada leitura.
-
----
-
-# 44. RASCUNHO E PRODUÇÃO
-
-A ficha deve possuir os estados conceituais:
-
-```text
-RASCUNHO
-PRODUÇÃO
-```
-
-## RASCUNHO
-
-Enquanto está em rascunho, o usuário pode alterar livremente:
-
-* nome;
-* título;
-* cabeçalho;
-* seções;
-* perguntas;
-* opções;
-* perguntas abertas;
-* ordem dos elementos.
-
-Pode regenerar a ficha quantas vezes forem necessárias.
-
-## PRODUÇÃO
-
-Depois de:
-
-```text
-Gerar ficha
-    ↓
-Visualizar
-    ↓
-Confirmar
-    ↓
-Gerar planilha
-```
-
-a ficha entra em produção.
-
-Sua estrutura passa a ser o schema da pesquisa.
-
----
-
-# 45. VERSIONAMENTO
-
-Uma ficha que já está em produção não deve ter sua estrutura alterada silenciosamente.
-
-Alterações estruturais incluem:
-
-```text
-Adicionar pergunta
-Excluir pergunta
-Renomear pergunta
-Alterar ordem das perguntas
-Adicionar campo de cabeçalho
-Excluir campo de cabeçalho
-Renomear campo de cabeçalho
-Alterar ordem do cabeçalho
-Transformar pergunta fechada em aberta
-Transformar pergunta aberta em fechada
-Alterar estrutura de opções
-```
-
-Essas alterações podem mudar a estrutura das colunas e comprometer a compatibilidade com dados já coletados.
-
-Quando o usuário precisar modificar uma ficha em produção, o comportamento esperado é:
-
-```text
-Ficha em produção
+selecionar PDFs
         ↓
-Editar
+carregar primeiro
         ↓
-Criar nova versão
-```
-
-A nova versão deve:
-
-```text
-manter o mesmo pesquisa_id
-incrementar a versão
-registrar a versão anterior
-começar novamente como RASCUNHO
-não herdar a planilha da versão anterior
-```
-
-Exemplo:
-
-```text
-Pesquisa
-├── Ficha v1
-│   └── Planilha v1
-│
-├── Ficha v2
-│   └── Planilha v2
-│
-└── Ficha v3
-    └── Planilha v3
-```
-
-Cada versão possui sua própria estrutura, PDF, mapa OMR e planilha.
-
----
-
-# 46. FONTE ÚNICA DE VERDADE
-
-A estrutura da planilha deve ser derivada da estrutura da ficha.
-
-Não criar uma segunda estrutura manual específica para a planilha.
-
-Conceitualmente:
-
-```text
-Estrutura da ficha
+Ler ficha (OMR)
         ↓
-Gerador da ficha
+conferir
         ↓
-PDF + mapa OMR
-```
-
-e:
-
-```text
-Estrutura da ficha
+salvar
         ↓
-Gerador da planilha
+dados + PDF concluídos
         ↓
-Cabeçalho da planilha
+carregar próximo automaticamente
 ```
 
-Portanto:
+O OMR **não roda automaticamente** no próximo arquivo.
+
+O operador precisa clicar novamente:
 
 ```text
-Ficha
-    ↓
-Fonte de verdade
-```
-
-A planilha é uma representação tabular dessa ficha.
-
----
-
-# 47. LEITURA E CONSTRUÇÃO DA LINHA
-
-Depois da leitura OMR e da entrada manual dos campos, o SDIP deve montar um único registro.
-
-Exemplo:
-
-```text
-Campos do cabeçalho:
-
-Data = 23/08/2026
-Número do Selo = 12345
-Comunidade = X
-Nome = João
-Entrevistador = Maria
-
-OMR:
-
-1.1 = Sim
-1.2 = Sim
-1.3 = Não
-
-Pergunta aberta:
-
-2.3 = Precisa melhorar
-```
-
-O sistema transforma isso em uma única linha:
-
-```text
-23/08/2026
-12345
-X
-João
-Maria
-Sim
-Sim
-Não
-Precisa melhorar
-```
-
-Essa linha é adicionada à planilha existente.
-
----
-
-# 48. "OUTROS" E "QUAL?"
-
-Existe um caso de processo ainda não definido:
-
-```text
-☐ Outros
-   Qual? __________________
-```
-
-A dúvida é se a anotação manuscrita do campo `Qual?` realmente deve ser transcrita para a planilha.
-
-Esse comportamento será confirmado com os usuários em reunião.
-
-Até essa confirmação:
-
-```text
-não alterar a arquitetura;
-não criar coluna adicional automaticamente;
-não assumir que "Qual?" precisa ser armazenado.
-```
-
-A implementação deve seguir o processo real utilizado pelos usuários.
-
-Perguntas abertas independentes continuam gerando coluna normalmente.
-
----
-
-# 49. ARQUIVOS ENVOLVIDOS NA SAÍDA
-
-Os arquivos atualmente envolvidos são:
-
-```text
-engine/sheets.py
-engine/fichas_manager.py
-engine/leitor.py
-ui/main_window.py
-```
-
-## engine/sheets.py
-
-Responsável por:
-
-```text
-criar .xlsx
-validar cabeçalho
-adicionar novas linhas
-preservar estrutura da planilha
-formatar a planilha
-```
-
-## engine/fichas_manager.py
-
-Responsável por informações como:
-
-```text
-ficha ativa
-status
-versão
-pesquisa_id
-vínculo com planilha
-```
-
-## engine/leitor.py
-
-Responsável pela integração:
-
-```text
-PDF
-ArUco
-geometria
-normalização
-OMR
-resultado da leitura
-```
-
-## ui/main_window.py
-
-Responsável pela integração com a interface:
-
-```text
-ler ficha
-revisar
-gerar planilha
-vincular planilha
-salvar resultado
-criar nova versão
-```
-
----
-
-# 50. COMPONENTES PROTEGIDOS
-
-Os seguintes componentes já foram amplamente validados e não devem ser alterados sem evidência técnica:
-
-```text
-engine/omr.py
-engine/geometria.py
-engine/gerador_ficha.py
-```
-
-Também não alterar desnecessariamente:
-
-```text
-ui/form_panel.py
-ui/viewer.py
-ui/formulario_ficha.py
-area_omr.py
-```
-
-Qualquer mudança nesses componentes deve ser baseada em teste que demonstre um problema real.
-
----
-
-# 51. VALIDAÇÕES DA SAÍDA TABULAR
-
-Foram realizados testes técnicos com a nova camada de planilha.
-
-Resultados:
-
-```text
-✅ estrutura da planilha derivada da ficha
-✅ campos do cabeçalho transformados em colunas
-✅ perguntas transformadas em colunas
-✅ seções não transformadas em colunas
-✅ ordem preservada
-✅ uma nova linha por registro
-✅ primeira linha congelada
-✅ filtro automático
-✅ largura ajustada
-✅ datas tratadas como datas Excel
-✅ arquivo .xlsx válido
-✅ planilha reaberta sem erro
-✅ compatibilidade Excel corrigida
-✅ vínculo ficha → planilha
-✅ estrutura inicial de RASCUNHO / PRODUÇÃO / versão
-```
-
-Foi também realizado teste técnico do leitor com ficha branca:
-
-```text
-50 caixas
-0 marcadas
-0 erros
-```
-
-Esse teste técnico não substitui o teste físico real.
-
----
-
-# 52. TESTE FÍSICO FINAL — PRÓXIMA ETAPA
-
-O próximo teste obrigatório é:
-
-```text
-Ficha atual
-    ↓
-Impressão
-    ↓
-Preenchimento manual
-    ↓
-Scanner real
-    ↓
-600 DPI
-    ↓
-PDF
-    ↓
-Digitalizar
-    ↓
 Ler ficha (OMR)
 ```
 
-O objetivo é comparar:
-
-```text
-Marcações feitas manualmente
-        VS.
-Marcações identificadas pelo SDIP
-```
-
-Critério esperado:
-
-```text
-100% das marcações reais detectadas
-0 falsos positivos
-```
-
-Também devem ser testadas:
-
-```text
-marcações na parte superior
-marcações no meio
-marcações na parte inferior
-coluna esquerda
-coluna direita
-página 1
-página 2
-resposta única
-resposta múltipla
-```
-
-Não recalibrar `omr.py` ou `geometria.py` antes de observar o resultado desse teste.
+A fila só avança depois de um salvamento completo.
 
 ---
 
-# 53. TESTE DA PLANILHA NO FLUXO REAL
+# 22. Situações em que a fila não avança
 
-Depois de o OMR passar no scanner real:
+Não avançar quando houver:
 
-```text
-PDF escaneado
-    ↓
-Ler ficha
-    ↓
-respostas OMR
-    +
-campos digitados
-    +
-respostas abertas
-    ↓
-Salvar resultado
-    ↓
-XLSX vinculado
-```
+* data inválida;
+* cancelamento;
+* recusa da confirmação de campos vazios;
+* erro no XLSX;
+* erro no Google Sheets;
+* erro na pasta dos PDFs;
+* erro no arquivamento;
+* qualquer falha de salvamento.
 
-Conferir:
+Depois do último arquivo:
 
 ```text
-✅ campos do cabeçalho nas colunas corretas
-✅ respostas OMR nas colunas corretas
-✅ abertas nas colunas corretas
-✅ uma única nova linha
-✅ nenhuma alteração na linha 1
-✅ Excel abre sem reparação
+Fila concluída
 ```
 
 ---
 
-# 54. TESTES DE BUG E ROBUSTEZ
+# 23. Interface
 
-Depois da validação física principal, iniciar testes negativos.
+A interface foi reorganizada para notebooks e janelas menores.
 
-Casos a testar:
+Configuração principal:
 
 ```text
-PDF sem ArUco
-PDF incorreto
-página faltando
-página duplicada
-página invertida
-página fora de ordem
-imagem de baixa qualidade
-marca fraca
-marca forte
-marca parcial
-marca fora da caixa
-pergunta sem resposta
-múltiplas marcações em resposta única
-múltiplas respostas em questão múltipla
-campo de identificação vazio
-resposta aberta vazia
-planilha inexistente
-planilha movida
-planilha alterada manualmente
-ficha sem vínculo com planilha
-ficha em produção tentando ser alterada
+geometry: 1200x750
+minsize: 1000x600
 ```
 
-O objetivo é que o sistema apresente erros compreensíveis e não grave silenciosamente dados incorretos.
+## Digitalizar
+
+Estrutura aproximada:
+
+```text
+PDF | formulário / ações
+```
+
+Divisor redimensionável.
+
+## Criar / Editar
+
+Estrutura aproximada:
+
+```text
+configurações | estrutura da ficha
+```
+
+Divisor redimensionável.
+
+O botão `Salvar resultado` permanece acessível na parte superior da área operacional.
 
 ---
 
-# 55. UX/UI — PRÓXIMA FASE APÓS OS TESTES
+# 24. Visualizador
 
-Depois de validar o núcleo técnico, iniciar melhoria da experiência do usuário.
+O visualizador suporta:
 
-Sequência recomendada:
+* ajuste automático;
+* zoom;
+* aumentar;
+* diminuir;
+* faixa aproximada de 50% a 300%;
+* scroll;
+* redimensionamento;
+* navegação multipágina.
 
-```text
-Criar/Editar ficha
-        ↓
-Visualizar ficha
-        ↓
-Confirmar produção
-        ↓
-Gerar planilha
-        ↓
-Digitalizar
-        ↓
-Ler OMR
-        ↓
-Revisar
-        ↓
-Salvar
-```
-
-Prioridades de UX/UI:
-
-```text
-clareza dos botões
-hierarquia visual
-mensagens de sucesso
-mensagens de erro
-indicação da ficha ativa
-indicação da planilha vinculada
-feedback durante processamento
-feedback após salvar
-clareza entre RASCUNHO e PRODUÇÃO
-clareza durante criação de nova versão
-```
-
-As melhorias visuais devem ser feitas depois da validação física do fluxo principal.
+O arquivo `ui/viewer.py` pode ser revisado futuramente, mas **não deve ser refatorado antes da validação do MVP**.
 
 ---
 
-# 56. GOOGLE FORMS
+# 25. Onde devo marcar?
 
-A integração com Google Forms ainda não deve ser implementada.
-
-A ordem correta continua sendo:
-
-```text
-OMR funcionando
-    ↓
-resultado estruturado
-    ↓
-validação
-    ↓
-identificação/data/abertas
-    ↓
-revisão
-    ↓
-salvamento local em XLSX
-    ↓
-Google Forms
-```
-
-Não acoplar Google Forms diretamente ao OMR.
-
----
-
-# 57. MÚLTIPLAS FICHAS
-
-Depois do teste físico completo e da estabilização do fluxo de uma ficha, avaliar processamento em lote:
-
-```text
-PDF 1
-PDF 2
-PDF 3
-PDF 4
-...
-```
-
-Cada resultado deve ser vinculado à ficha correta e acrescentado à planilha correspondente.
-
-Nunca utilizar o mapa de uma ficha para outra ficha.
-
----
-
-# 58. LIMPEZA DO PROJETO
-
-A limpeza de scripts históricos continua posterior à estabilização.
-
-Avaliar:
-
-```text
-teste_geometria.py
-teste_aruco_scan.py
-testes históricos
-scripts duplicados
-arquivos temporários
-diagnósticos
-```
-
-Não remover arquivos apenas porque parecem antigos.
-
-Antes de apagar qualquer teste:
-
-```text
-avaliar utilidade
-identificar duplicação
-verificar se é histórico
-verificar se pode servir como regressão
-```
-
-`area_omr.py` deve permanecer enquanto continuar sendo utilizado pela funcionalidade:
+A funcionalidade:
 
 ```text
 Onde devo marcar?
 ```
 
+continua integrada ao produto.
+
+Ela exibe visualmente a região efetivamente analisada pelo OMR.
+
+O destaque vermelho:
+
+```text
+aparece apenas na visualização
+```
+
+Não modifica:
+
+* PDF original;
+* ficha impressa.
+
+Arquivo:
+
+```text
+area_omr.py
+```
+
 ---
 
-# 59. SEGURANÇA
-
-Antes da distribuição:
+# 26. Funcionalidades consideradas concluídas no MVP
 
 ```text
-não incluir .venv
-não incluir credenciais
-não incluir tokens
-não incluir PDFs pessoais
-não incluir imagens de teste pessoais
-não incluir resultados temporários
-não incluir configurações com dados sensíveis
+[x] geração automática de fichas
+[x] layout automático
+[x] paginação
+[x] seções
+[x] perguntas únicas
+[x] perguntas múltiplas
+[x] perguntas abertas
+[x] cabeçalho configurável
+[x] campos de data
+[x] logo
+[x] fonte configurável
+[x] ficha ativa
+[x] RASCUNHO / PRODUÇÃO / versões
+[x] ArUco
+[x] homografia
+[x] normalização
+[x] mapa OMR
+[x] leitura OMR
+[x] Onde devo marcar?
+[x] XLSX
+[x] vínculo ficha → planilha
+[x] Google Sheets
+[x] validação estrutural Google Sheets
+[x] .sdip
+[x] importação/exportação entre computadores
+[x] alerta de campos manuais vazios
+[x] validação de data
+[x] Manter
+[x] Nome do PDF
+[x] arquivamento do PDF processado
+[x] proteção contra sobrescrita
+[x] pasta local de processados
+[x] seleção de vários PDFs
+[x] fila de processamento
+[x] avanço automático
+[x] proteção contra avanço em erro
+[x] interface adaptada para notebooks
 ```
-
-A planilha de uma pesquisa deve ser tratada como dado produzido pelo usuário.
-
-O vínculo entre ficha e planilha deve permanecer específico daquela pesquisa/versão.
 
 ---
 
-# 60. EMPACOTAMENTO
+# 27. Testes ainda obrigatórios
 
-Quando o fluxo estiver concluído:
+O MVP está funcionalmente implementado, mas ainda precisa ser validado no ambiente real.
 
-```text
-Criar ficha
-    ↓
-Digitalizar
-    ↓
-Ler
-    ↓
-Validar
-    ↓
-Revisar
-    ↓
-Salvar
-    ↓
-Enviar para destino
-```
+## Máquinas do trabalho
 
-o projeto poderá ser empacotado como aplicativo Windows:
+Testar:
 
 ```text
-SDIP.exe
+[ ] instalar/executar build em máquina diferente
+[ ] executar sem Python instalado
+[ ] importar .sdip
+[ ] fechar e abrir novamente
+[ ] Google Sheets continuar vinculado
+[ ] Google Sheets receber registros
+[ ] duas máquinas usarem a mesma pesquisa
+[ ] caminhos locais permanecerem independentes
+[ ] pasta de PDFs ser configurada individualmente
 ```
+
+## Fluxo físico
+
+```text
+[ ] imprimir A4 em 100%
+[ ] preencher manualmente
+[ ] digitalizar em 600 DPI
+[ ] detectar ArUcos
+[ ] aplicar homografia
+[ ] executar OMR
+[ ] validar respostas
+[ ] validar perguntas abertas
+[ ] validar campos manuais
+[ ] salvar
+[ ] conferir planilha
+[ ] conferir PDF arquivado
+```
+
+## Fila
+
+```text
+[ ] selecionar vários PDFs reais
+[ ] confirmar ordem
+[ ] validar Arquivo X de N
+[ ] salvar arquivo atual
+[ ] confirmar avanço
+[ ] confirmar Manter
+[ ] confirmar limpeza dos demais campos
+[ ] validar último arquivo
+[ ] confirmar Fila concluída
+```
+
+## Falhas
+
+```text
+[ ] Google indisponível
+[ ] cabeçalho Google alterado
+[ ] XLSX indisponível
+[ ] pasta de PDFs indisponível
+[ ] data inválida
+[ ] campos vazios
+[ ] PDF inválido
+[ ] PDF sem ArUco
+[ ] página faltando
+[ ] arquivo duplicado
+```
+
+---
+
+# 28. Próximas etapas imediatas
+
+A sequência atual é:
+
+```text
+1. atualizar CONTINUIDADE.md
+2. remover README_ANTIGO.md
+3. salvar documentação no Git
+4. gerar build Windows
+5. testar localmente
+6. compactar build
+7. disponibilizar como Release de teste
+8. baixar na máquina do trabalho
+9. executar checklist real
+10. corrigir somente bugs comprovados
+11. gerar build estável
+12. publicar Release estável
+```
+
+---
+
+# 29. Empacotamento Windows
+
+PyInstaller instalado no ambiente atual:
+
+```text
+PyInstaller 6.22.2
+```
+
+A primeira distribuição será testada utilizando:
+
+```text
+onedir
+```
+
+em vez de `onefile`.
 
 Objetivo:
 
 ```text
-duplo clique
-↓
-abrir aplicação
+dist/
+└── SDIP/
+    ├── SDIP.exe
+    └── _internal/
 ```
 
-O usuário final não deverá precisar executar Python, PowerShell ou `.venv`.
+O diretório inteiro deverá ser distribuído.
 
-Provavelmente será utilizado PyInstaller, mas somente próximo da versão estável.
+Não copiar somente `SDIP.exe`.
+
+Comando inicial planejado:
+
+```powershell
+pyinstaller --noconfirm --clean --windowed --onedir --name SDIP --collect-all customtkinter app.py
+```
+
+Esse comando ainda precisa ser executado e validado.
+
+Antes do build, verificar se os artefatos do PyInstaller estão ignorados pelo Git:
+
+```text
+build/
+dist/
+*.spec
+```
+
+A decisão sobre manter ou versionar um `.spec` definitivo pode ser tomada depois que a configuração de empacotamento estiver validada.
 
 ---
 
-# 61. DOCUMENTAÇÃO
+# 30. GitHub Release
 
-## README
-
-Deve explicar:
-
-* objetivo;
-* arquitetura;
-* geração da ficha;
-* layout;
-* paginação;
-* seções;
-* perguntas abertas;
-* cabeçalho configurável;
-* ficha ativa;
-* ArUco;
-* geometria;
-* OMR;
-* calibração;
-* visualização `Onde devo marcar?`;
-* geração da planilha;
-* estrutura das colunas;
-* fluxo RASCUNHO → PRODUÇÃO;
-* versionamento;
-* instalação;
-* testes;
-* estado do projeto;
-* fluxo de saída.
-
-## Manual do usuário
-
-Deve explicar:
-
-* criar ficha;
-* definir campos do cabeçalho;
-* gerar;
-* visualizar;
-* consultar `Onde devo marcar?`;
-* colocar ficha em produção;
-* gerar planilha;
-* imprimir;
-* preencher;
-* escanear;
-* processar;
-* revisar;
-* salvar;
-* trabalhar com novas versões;
-* configurar destino;
-* enviar para o destino configurado.
-
-## Documento técnico
-
-Deve registrar:
-
-* parâmetros;
-* calibrações;
-* diagnósticos;
-* decisões técnicas;
-* problemas encontrados;
-* soluções adotadas;
-* resultados dos testes físicos;
-* estrutura da saída tabular;
-* versionamento de fichas.
-
----
-
-# 62. ENCERRAMENTO DE SESSÃO
-
-Quando o trabalho do dia terminar:
-
-1. registrar o que foi feito;
-2. atualizar este arquivo;
-3. registrar arquivos alterados;
-4. registrar testes executados;
-5. registrar resultados;
-6. registrar o próximo passo;
-7. verificar `git status`;
-8. fazer commit quando apropriado.
-
-Se o usuário esquecer o encerramento, lembrar de atualizar este arquivo antes de finalizar a sessão.
-
----
-
-# 63. REGRA MAIS IMPORTANTE
-
-O SDIP 2.0 possui trabalho real, testes físicos e parâmetros calibrados.
-
-Não tratar o projeto como tutorial ou exemplo genérico.
-
-Continuar exatamente do estado existente.
-
-Antes de alterar algo importante:
+O Release é diferente do executável.
 
 ```text
-O que está errado?
-
-        ↓
-
-Por que está errado?
-
-        ↓
-
-Qual arquivo é responsável?
-
-        ↓
-
-O componente já foi validado?
-
-        ↓
-
-O que será alterado?
-
-        ↓
-
-Como será testado?
-
-        ↓
-
-Qual resultado esperamos?
-```
-
-Não alterar componentes validados sem evidência.
-
----
-
-# 64. ESTADO ATUAL — 27/08/2026
-
-## Validado
-
-```text
-✅ Gerador automático
-✅ Layout em duas colunas
-✅ Uma ou várias páginas
-✅ Ficha de 1 página
-✅ Ficha de 2 páginas
-✅ Paginação dinâmica
-✅ ArUco real
-✅ ArUcoDetector
-✅ IDs ArUco por página
-✅ Geometria
-✅ Homografia
-✅ Normalização 1191 × 1684
-✅ Mapa automático
-✅ Mapa associado à ficha
-✅ OMR
-✅ Margem 7
-✅ Threshold 5%
-✅ Pixel escuro 150
-✅ Caixa OMR visual limpa
-✅ Espaçamento vertical ajustado
-✅ Ficha branca de 2 páginas: 140 caixas / 0 falsos positivos
-✅ Teste físico histórico: 12/12 marcações detectadas
-✅ Mapeamento visual de 1 página
-✅ Mapeamento visual de 2 páginas
-✅ Mapeamento após alteração de fonte
-✅ Seções
-✅ Resposta única
-✅ Resposta múltipla
-✅ Perguntas abertas — estrutura inicial
-✅ Cabeçalho configurável
-✅ Cabeçalho impresso
-✅ Edição de ficha em rascunho
-✅ Logo
-✅ Ficha ativa
-✅ Visualização da ficha ativa
-✅ Onde devo marcar?
-✅ Área OMR vermelha apenas na visualização
-✅ PDF original sem marcações vermelhas
-✅ Exportação do PDF
-✅ Leitor integrado ao fluxo
-✅ Estrutura de planilha derivada da ficha
-✅ Campos do cabeçalho como colunas
-✅ Perguntas como colunas
-✅ Seções fora da estrutura tabular
-✅ Uma ficha por linha
-✅ XLSX
-✅ Linha 1 congelada
-✅ Filtro automático
-✅ Largura de colunas ajustada
-✅ Data tratada como data Excel
-✅ Compatibilidade com Excel corrigida
-✅ Vínculo ficha → planilha
-✅ Conceito RASCUNHO → PRODUÇÃO
-✅ Estrutura inicial de versionamento
-✅ Nova versão sem herdar a planilha anterior
-```
-
-## Não validado ainda no fluxo físico atual
-
-```text
-[ ] Ficha atual impressa e preenchida
-[ ] Scanner real
-[ ] 600 DPI no fluxo completo
-[ ] 100% das marcações reais reconhecidas
-[ ] 0 falsos positivos no fluxo final
-[ ] respostas OMR convertidas corretamente por pergunta
-[ ] campos digitados chegando nas colunas corretas
-[ ] respostas abertas chegando nas colunas corretas
-[ ] uma única nova linha criada no XLSX
-[ ] Excel abrindo a planilha final sem reparo
-```
-
-## Ainda pendente
-
-```text
-[ ] Confirmar comportamento de "Outros + Qual?"
-[ ] Bateria de testes negativos
-[ ] Testes de robustez
-[ ] Teste de múltiplas fichas
-[ ] Refinamento UX/UI
-[ ] Revisão final do fluxo de produção
-[ ] Integração com Google Forms
-[ ] Avaliar Google Sheets / outros destinos
-[ ] Limpeza dos scripts históricos
-[ ] Revisão de arquivos temporários
-[ ] Documentação final
-[ ] Empacotamento em EXE
-```
-
----
-
-# 65. PONTO EXATO DE RETOMADA
-
-O núcleo do SDIP 2.0 continua funcional e calibrado.
-
-A camada de saída para planilha foi implementada e passou a utilizar `.xlsx`, com estrutura derivada diretamente da ficha:
-
-```text
-campos do cabeçalho
-        +
-perguntas da ficha
-        ↓
-linha 1 da planilha
-```
-
-As seções são exclusivamente visuais.
-
-Cada ficha lida acrescenta uma nova linha na planilha vinculada àquela versão da pesquisa.
-
-A planilha é criada uma vez quando a ficha é colocada em produção e o caminho é armazenado para uso posterior.
-
-O Excel apresentou anteriormente erro de XML no arquivo `.xlsx`; a causa foi identificada e corrigida na geração de `styles.xml` e `sheet1.xml`. A nova estrutura foi validada.
-
-O conceito de:
-
-```text
-RASCUNHO
-    ↓
-PRODUÇÃO
-    ↓
-NOVA VERSÃO
-```
-
-faz parte da arquitetura atual.
-
-O comportamento específico de `Outros + Qual?` ainda aguarda decisão dos usuários.
-
-O próximo passo é **teste físico completo**, não alteração do núcleo.
-
-Fluxo imediato:
-
-```text
-1. imprimir a ficha atual
-2. preencher manualmente
-3. escanear no scanner real
-4. utilizar 600 DPI
-5. processar no SDIP
-6. conferir todas as marcações
-7. conferir as respostas por pergunta
-8. conferir os campos digitados
-9. salvar o resultado
-10. abrir o XLSX no Excel
-11. confirmar que uma única nova linha foi criada
-```
-
-Depois dessa validação:
-
-```text
-teste de erros
-        ↓
-teste de robustez
-        ↓
-UX/UI
-        ↓
-Google Forms
-        ↓
-múltiplas fichas
-        ↓
 EXE
-        ↓
-limpeza e documentação final
+→ programa gerado
+
+GitHub Release
+→ forma de distribuir uma versão desse programa
 ```
 
-Não recalibrar `engine/omr.py` ou `engine/geometria.py` sem evidência técnica obtida no teste físico.
+Fluxo planejado:
 
-Não modificar componentes já validados apenas para antecipar melhorias.
+```text
+código
+    ↓
+PyInstaller
+    ↓
+dist/SDIP/
+    ↓
+teste local
+    ↓
+ZIP
+    ↓
+GitHub Release de teste
+    ↓
+download na máquina do trabalho
+```
 
-**Estado de retomada:** o projeto está na fase de **validação física final do OMR e da integração OMR → dados digitados → XLSX**.
+Somente depois da validação real deverá ser publicada uma versão considerada estável.
+
+---
+
+# 31. Repositórios
+
+Estratégia:
+
+```text
+Repositório pessoal
+→ projeto principal
+→ desenvolvimento
+→ histórico
+→ releases
+
+Repositório institucional
+→ versão estável aprovada
+→ documentação institucional
+→ atualização quando necessário
+```
+
+O repositório institucional não precisa acompanhar cada commit do desenvolvimento principal.
+
+---
+
+# 32. Segurança e dados
+
+Nunca publicar:
+
+* dados pessoais;
+* PDFs reais com informações pessoais;
+* resultados de pesquisas reais;
+* tokens;
+* chaves expostas em documentação;
+* `.env`;
+* `.venv`;
+* arquivos temporários;
+* credenciais.
+
+A chave de integração do Google Sheets deve ser tratada como informação operacional da pesquisa.
+
+---
+
+# 33. Autoria e distribuição
+
+O SDIP foi desenvolvido por **Diogo Barbosa**.
+
+O projeto surgiu a partir de uma necessidade prática apresentada no ambiente de trabalho, mas o projeto principal é mantido separadamente pelo autor.
+
+A documentação deve preservar a distinção entre:
+
+```text
+autoria/desenvolvimento principal
+        e
+versão institucional disponibilizada para uso
+```
+
+Questões patrimoniais continuam sujeitas às disposições legais e contratuais aplicáveis.
+
+Não utilizar licença permissiva automaticamente sem uma decisão explícita sobre a política futura de distribuição do código-fonte.
+
+---
+
+# 34. Itens posteriores ao MVP
+
+Não são prioridade durante a validação atual:
+
+* normalização avançada de identificadores;
+* detecção de registros duplicados;
+* governança multiusuário avançada;
+* votação/aprovação de alterações estruturais;
+* revisão do comportamento de rascunhos;
+* refatoração do `main_window.py`;
+* refatoração do `viewer.py`;
+* reorganização arquitetural;
+* testes automatizados completos;
+* otimizações não necessárias;
+* melhorias cosméticas sem impacto operacional.
+
+---
+
+# 35. Regra de correção
+
+Durante os testes:
+
+```text
+problema observado
+        ↓
+reproduzir
+        ↓
+identificar arquivo responsável
+        ↓
+avaliar se componente já foi validado
+        ↓
+propor alteração mínima
+        ↓
+autorizar
+        ↓
+alterar
+        ↓
+testar
+        ↓
+commit
+```
+
+Nunca modificar o núcleo apenas por suspeita.
+
+---
+
+# 36. Workflow para alterações de código
+
+Antes de gerar código:
+
+1. listar objetivamente todas as mudanças propostas;
+2. identificar arquivos afetados;
+3. explicar o motivo;
+4. aguardar autorização.
+
+Depois da autorização:
+
+1. trabalhar sobre o código atual;
+2. gerar arquivos completos quando a alteração for relevante;
+3. evitar blocos parciais que possam causar substituições incorretas;
+4. não modificar áreas fora do escopo;
+5. testar;
+6. registrar o resultado;
+7. fazer commit quando aprovado.
+
+---
+
+# 37. Encerramento de sessão
+
+Antes de encerrar uma etapa importante:
+
+```powershell
+git status
+```
+
+Se aprovado:
+
+```powershell
+git add ...
+git commit -m "..."
+git push
+```
+
+Depois:
+
+```powershell
+git status
+```
+
+Estado ideal:
+
+```text
+nothing to commit, working tree clean
+```
+
+---
+
+# 38. Ponto exato de retomada
+
+Estado em **02/09/2026**:
+
+```text
+MVP funcional implementado
+        ↓
+item de fila de PDFs validado
+        ↓
+README atualizado
+        ↓
+código enviado ao GitHub
+        ↓
+PyInstaller 6.22.2 instalado
+        ↓
+CONTINUIDADE sendo atualizada
+        ↓
+próximo passo:
+GERAR O EXECUTÁVEL DE TESTE
+```
+
+Antes de executar o PyInstaller:
+
+```text
+1. remover README_ANTIGO.md
+2. salvar CONTINUIDADE.md
+3. verificar .gitignore
+4. garantir git status limpo
+```
+
+Depois:
+
+```text
+gerar build
+→ testar SDIP.exe
+→ compactar pasta
+→ GitHub Release de teste
+→ testes nas máquinas do trabalho
+```
+
+Não iniciar novas funcionalidades antes dessa validação.
+
+---
+
+# Autor
+
+**Diogo Barbosa**
+
+SDIP — Sistema de Digitalização Inteligente de Pesquisas
