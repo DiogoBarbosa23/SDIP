@@ -15,6 +15,10 @@ from engine.pdf_reader import PDFReader
 from engine.gerador_ficha import GeradorFicha
 from engine.fichas_manager import FichasManager
 from engine.leitor import LeitorFicha
+from engine.pacote_pesquisa import (
+    ErroPacotePesquisa,
+    PacotePesquisa
+)
 from engine.sheets import PlanilhaResultados
 
 from ui.viewer import PDFViewer
@@ -207,7 +211,7 @@ class MainWindow(ctk.CTk):
                 "bold"
             )
         ).pack(
-            pady=(90, 5)
+            pady=(55, 5)
         )
 
         ctk.CTkLabel(
@@ -290,6 +294,48 @@ class MainWindow(ctk.CTk):
         )
 
         # ======================================================
+        # IMPORTAR / EXPORTAR PESQUISA
+        # ======================================================
+
+        pacote_frame = ctk.CTkFrame(
+            self.menu_frame,
+            fg_color="transparent"
+        )
+
+        pacote_frame.pack(
+            pady=(4, 6)
+        )
+
+        self.exportar_pesquisa_button = ctk.CTkButton(
+            pacote_frame,
+            text="Exportar pesquisa",
+            width=155,
+            height=38,
+            command=self.exportar_pesquisa_ativa
+        )
+
+        self.exportar_pesquisa_button.pack(
+            side="left",
+            padx=(0, 5)
+        )
+
+        if not self.ficha_ativa_id:
+            self.exportar_pesquisa_button.configure(
+                state="disabled"
+            )
+
+        ctk.CTkButton(
+            pacote_frame,
+            text="Importar pesquisa",
+            width=155,
+            height=38,
+            command=self.importar_pesquisa
+        ).pack(
+            side="left",
+            padx=(5, 0)
+        )
+
+        # ======================================================
         # FICHA ATIVA
         # ======================================================
 
@@ -320,8 +366,171 @@ class MainWindow(ctk.CTk):
             ),
             wraplength=500
         ).pack(
-            pady=(40, 10)
+            pady=(20, 10)
         )
+
+    # ==========================================================
+    # EXPORTAR PESQUISA ATIVA
+    # ==========================================================
+
+    def exportar_pesquisa_ativa(self):
+
+        if not self.ficha_ativa_id:
+            messagebox.showwarning(
+                "Exportar pesquisa",
+                "Nenhuma ficha ativa está disponível para exportação."
+            )
+            return
+
+        ficha = self.fichas_manager.carregar_ficha(
+            self.ficha_ativa_id
+        )
+
+        if not ficha:
+            messagebox.showerror(
+                "Exportar pesquisa",
+                "A ficha ativa não pôde ser carregada."
+            )
+            return
+
+        nome_sugerido = PacotePesquisa.nome_arquivo_sugerido(
+            ficha
+        )
+
+        destino = filedialog.asksaveasfilename(
+            title="Exportar pesquisa SDIP",
+            defaultextension=".sdip",
+            initialfile=nome_sugerido,
+            filetypes=[
+                (
+                    "Pacote de pesquisa SDIP",
+                    "*.sdip"
+                )
+            ]
+        )
+
+        if not destino:
+            return
+
+        try:
+            resultado = PacotePesquisa.exportar(
+                ficha,
+                destino
+            )
+
+            aviso_planilha = ""
+
+            if resultado.get(
+                "planilha_local_removida"
+            ):
+                aviso_planilha = (
+                    "\n\nO caminho da planilha XLSX local não foi "
+                    "incluído, pois ele pertence somente a este computador."
+                )
+
+            messagebox.showinfo(
+                "Pesquisa exportada",
+                (
+                    "Pesquisa exportada com sucesso.\n\n"
+                    f"Versão: {resultado['versao']}\n"
+                    f"Arquivo: {resultado['caminho']}"
+                    f"{aviso_planilha}"
+                )
+            )
+
+        except (
+            ErroPacotePesquisa,
+            OSError
+        ) as erro:
+            messagebox.showerror(
+                "Erro ao exportar pesquisa",
+                (
+                    "Não foi possível exportar a pesquisa.\n\n"
+                    f"{erro}"
+                )
+            )
+
+    # ==========================================================
+    # IMPORTAR PESQUISA
+    # ==========================================================
+
+    def importar_pesquisa(self):
+
+        caminho = filedialog.askopenfilename(
+            title="Importar pesquisa SDIP",
+            filetypes=[
+                (
+                    "Pacote de pesquisa SDIP",
+                    "*.sdip"
+                )
+            ]
+        )
+
+        if not caminho:
+            return
+
+        try:
+            resultado = PacotePesquisa.importar(
+                caminho,
+                self.fichas_manager
+            )
+
+            nome = (
+                resultado.get("nome_pesquisa")
+                or "Sem nome"
+            )
+            versao = resultado.get(
+                "versao",
+                1
+            )
+
+            tornar_ativa = messagebox.askyesno(
+                "Pesquisa importada",
+                (
+                    "A pesquisa foi importada com sucesso.\n\n"
+                    f"Pesquisa: {nome}\n"
+                    f"Versão: {versao}\n\n"
+                    "Deseja defini-la como a ficha ativa deste computador?"
+                )
+            )
+
+            if tornar_ativa:
+                self.fichas_manager.definir_ativa(
+                    resultado["ficha_id"]
+                )
+                self.carregar_ficha_ativa()
+
+            aviso_planilha = ""
+
+            if resultado.get(
+                "planilha_local_removida"
+            ):
+                aviso_planilha = (
+                    "\n\nO vínculo com a planilha XLSX local do "
+                    "computador de origem não foi importado."
+                )
+
+            messagebox.showinfo(
+                "Importação concluída",
+                (
+                    "A pesquisa está disponível neste SDIP."
+                    f"{aviso_planilha}"
+                )
+            )
+
+            self.criar_menu_principal()
+
+        except (
+            ErroPacotePesquisa,
+            OSError
+        ) as erro:
+            messagebox.showerror(
+                "Erro ao importar pesquisa",
+                (
+                    "Não foi possível importar a pesquisa.\n\n"
+                    f"{erro}"
+                )
+            )
 
     # ==========================================================
     # VISUALIZAR FICHA ATIVA
