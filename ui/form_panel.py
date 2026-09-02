@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import customtkinter as ctk
 
 
@@ -18,6 +20,8 @@ class FormPanel(ctk.CTkFrame):
         )
 
         self.campos_identificacao = {}
+        self.campos_identificacao_tipos = {}
+        self.manter_identificacao = {}
         self.campos_abertos = {}
 
         self.criar_interface()
@@ -145,6 +149,16 @@ class FormPanel(ctk.CTkFrame):
         campos
     ):
 
+        valores_anteriores = {
+            nome: campo.get()
+            for nome, campo in self.campos_identificacao.items()
+        }
+
+        manter_anteriores = {
+            nome: variavel.get()
+            for nome, variavel in self.manter_identificacao.items()
+        }
+
         for widget in self.identificacao_frame.winfo_children():
 
             if widget not in (
@@ -154,6 +168,8 @@ class FormPanel(ctk.CTkFrame):
                 widget.destroy()
 
         self.campos_identificacao = {}
+        self.campos_identificacao_tipos = {}
+        self.manter_identificacao = {}
 
         if not campos:
 
@@ -197,8 +213,19 @@ class FormPanel(ctk.CTkFrame):
                 pady=(6, 2)
             )
 
-            entrada = ctk.CTkEntry(
+            linha = ctk.CTkFrame(
                 self.identificacao_frame,
+                fg_color="transparent"
+            )
+
+            linha.pack(
+                fill="x",
+                padx=10,
+                pady=(0, 4)
+            )
+
+            entrada = ctk.CTkEntry(
+                linha,
                 placeholder_text=(
                     self._placeholder_para_tipo(
                         tipo
@@ -207,14 +234,60 @@ class FormPanel(ctk.CTkFrame):
             )
 
             entrada.pack(
+                side="left",
                 fill="x",
-                padx=10,
-                pady=(0, 4)
+                expand=True,
+                padx=(0, 8)
+            )
+
+            if nome in valores_anteriores:
+
+                valor_inicial = valores_anteriores[nome]
+
+            elif tipo == "Data":
+
+                valor_inicial = datetime.now().strftime(
+                    "%d/%m/%Y"
+                )
+
+            else:
+
+                valor_inicial = ""
+
+            if valor_inicial:
+
+                entrada.insert(
+                    0,
+                    valor_inicial
+                )
+
+            manter = ctk.BooleanVar(
+                value=manter_anteriores.get(
+                    nome,
+                    False
+                )
+            )
+
+            ctk.CTkCheckBox(
+                linha,
+                text="Manter",
+                variable=manter,
+                width=78
+            ).pack(
+                side="right"
             )
 
             self.campos_identificacao[
                 nome
             ] = entrada
+
+            self.campos_identificacao_tipos[
+                nome
+            ] = tipo
+
+            self.manter_identificacao[
+                nome
+            ] = manter
 
     # ==========================================================
     # PLACEHOLDER
@@ -347,6 +420,53 @@ class FormPanel(ctk.CTkFrame):
         }
 
     # ==========================================================
+    # VALIDAR DATAS
+    # ==========================================================
+
+    def validar_datas(self):
+
+        campos_invalidos = []
+
+        for nome, campo in self.campos_identificacao.items():
+
+            if self.campos_identificacao_tipos.get(
+                nome
+            ) != "Data":
+
+                continue
+
+            valor = campo.get().strip()
+
+            if not valor:
+
+                continue
+
+            try:
+
+                data = datetime.strptime(
+                    valor,
+                    "%d/%m/%Y"
+                )
+
+            except ValueError:
+
+                campos_invalidos.append(
+                    nome
+                )
+
+                continue
+
+            if data.strftime(
+                "%d/%m/%Y"
+            ) != valor:
+
+                campos_invalidos.append(
+                    nome
+                )
+
+        return campos_invalidos
+
+    # ==========================================================
     # SALVAR
     # ==========================================================
 
@@ -358,6 +478,34 @@ class FormPanel(ctk.CTkFrame):
 
             self.salvar_callback(
                 dados
+            )
+
+    # ==========================================================
+    # LIMPAR APÓS SALVAR
+    # ==========================================================
+
+    def limpar_apos_salvar(self):
+
+        for nome, campo in self.campos_identificacao.items():
+
+            manter = self.manter_identificacao.get(
+                nome
+            )
+
+            if manter is not None and manter.get():
+
+                continue
+
+            campo.delete(
+                0,
+                "end"
+            )
+
+        for campo in self.campos_abertos.values():
+
+            campo.delete(
+                "1.0",
+                "end"
             )
 
     # ==========================================================

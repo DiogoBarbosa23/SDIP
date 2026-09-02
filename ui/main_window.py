@@ -3586,6 +3586,25 @@ class MainWindow(ctk.CTk):
                 dados
             )
 
+            datas_invalidas = self.form_panel.validar_datas()
+
+            if datas_invalidas:
+                lista_datas = "\n".join(
+                    f"• {campo}"
+                    for campo in datas_invalidas
+                )
+
+                messagebox.showwarning(
+                    "Data inválida",
+                    (
+                        "Existem campos de data com valor inválido:\n\n"
+                        f"{lista_datas}\n\n"
+                        "Use o formato DD/MM/AAAA e informe uma data válida."
+                    )
+                )
+
+                return
+
             campos_vazios = self._campos_manuais_vazios(
                 dados
             )
@@ -3699,6 +3718,8 @@ class MainWindow(ctk.CTk):
                 )
 
             self.resultado_omr = None
+
+            self.form_panel.limpar_apos_salvar()
 
             self.status.configure(
                 text=(
