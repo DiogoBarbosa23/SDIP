@@ -1014,27 +1014,6 @@ class MainWindow(ctk.CTk):
                 state="disabled"
             )
 
-            self.export_pdf_button = ctk.CTkButton(
-                actions_frame,
-                text="Salvar PDF localmente",
-                command=self.exportar_pdf_ativo
-            )
-
-            self.export_pdf_button.grid(
-                row=2,
-                column=0,
-                columnspan=2,
-                sticky="ew",
-                padx=4,
-                pady=4
-            )
-
-            if not self.pdf_gerado_path:
-
-                self.export_pdf_button.configure(
-                    state="disabled"
-                )
-
         # ======================================================
         # AÇÃO PRINCIPAL — SALVAR RESULTADO
         #
