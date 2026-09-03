@@ -617,7 +617,10 @@ class MainWindow(ctk.CTk):
                 )
             else:
                 abrir_area_omr(
-                    self
+                    self,
+                    caminho_pdf=self.pdf_gerado_path,
+                    caminho_mapa=self.mapa_gerado_path,
+                    ficha_id=self.ficha_ativa_id
                 )
 
         except Exception as erro:
