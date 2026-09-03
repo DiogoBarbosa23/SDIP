@@ -169,7 +169,7 @@ caminho_imagem = (
 )
 
 caminho_mapa = (
-    "config/mapa_caixas_gerado.json"
+    "temp/mapa_caixas_gerado.json"
 )
 
 paginas = ficha.gerar_imagem(

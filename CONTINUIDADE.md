@@ -21,41 +21,111 @@ Antes de qualquer alteração relevante:
 
 O **MVP funcional do SDIP está implementado**.
 
-Estado do Git após o fechamento das funcionalidades:
+Último commit remoto confirmado antes das alterações atuais:
 
 ```text
 Branch: main
-Último commit funcional/documentação:
-63701d7 Adiciona fila de PDFs e atualiza documentacao
+
+91c2a6c Remove testes e diagnosticos obsoletos
 ```
 
-Estado confirmado:
+Depois desse commit foi feita uma limpeza adicional, ainda a ser registrada no Git, removendo resíduos da arquitetura antiga de mapeamento manual/global:
 
 ```text
-Your branch is up to date with 'origin/main'.
-
-nothing to commit, working tree clean
+config/mapa_caixas.json        → removido
+config/mapa_caixas_gerado.json → removido
+engine/omr.py                  → fallback global removido
+teste_gerador_ficha.py         → mapa de teste movido para temp/
 ```
 
-O projeto está entrando na fase de:
+A remoção foi validada por:
+
+* compilação de `engine/omr.py` e `teste_gerador_ficha.py`;
+* verificação de todas as chamadas de `OMRReader`;
+* confirmação de que todas passam `mapa_path` explicitamente;
+* busca global por referências aos mapas antigos;
+* geração de ficha de teste;
+* geração do mapa de teste em `temp/`;
+* teste de `Onde devo marcar?`;
+* leitura OMR;
+* salvamento em planilha local;
+* arquivamento local;
+* repetição do fluxo depois que os JSONs antigos já haviam sido removidos.
+
+O comportamento atual está correto:
 
 ```text
-MVP implementado
-        ↓
-build do executável
-        ↓
-testes nas máquinas do trabalho
-        ↓
-correção apenas de bugs comprovados
-        ↓
-versão estável
-        ↓
-GitHub Release
+Pesquisa
+   ↓
+Ficha
+   ↓
+mapa_omr.json da própria ficha
+   ↓
+LeitorFicha
+   ↓
+OMRReader(mapa_path=...)
 ```
+
+Não existe mais dependência funcional de:
+
+```text
+config/mapa_caixas.json
+```
+
+A pasta `config/` antiga ficou sem função e foi removida.
 
 ---
 
-# 2. Objetivo do projeto
+# 2. Situação da distribuição Windows
+
+Uma primeira build utilizando PyInstaller chegou a ser gerada e executada localmente.
+
+Estrutura utilizada:
+
+```text
+dist/
+└── SDIP/
+    ├── SDIP.exe
+    ├── MANUAL_USUARIO_SDIP.pdf
+    └── _internal/
+```
+
+Comando utilizado na primeira tentativa:
+
+```powershell
+pyinstaller --noconfirm --clean --windowed --onedir --name SDIP --collect-all customtkinter app.py
+```
+
+O executável abriu corretamente e também funcionou depois de compactado e extraído em outra pasta local.
+
+Entretanto, durante a validação de segurança, o executável gerado recebeu detecções heurísticas de alguns mecanismos antivírus.
+
+O arquivo **não foi publicado como Release**.
+
+A build anterior foi descartada e o projeto foi recuperado novamente a partir do código-fonte armazenado no GitHub.
+
+O código-fonte baixado do GitHub não apresentou a mesma detecção local.
+
+A próxima build deverá ser feita novamente em ambiente virtual limpo.
+
+Comando planejado:
+
+```powershell
+pyinstaller --noconfirm --clean --windowed --onedir --noupx --name SDIP --collect-all customtkinter app.py
+```
+
+Depois da geração:
+
+1. verificar o executável localmente;
+2. calcular o hash SHA-256;
+3. realizar nova análise do executável;
+4. somente distribuir caso o resultado seja considerado aceitável;
+5. não criar exceção no antivírus apenas para forçar a execução;
+6. não publicar a build anterior.
+
+---
+
+# 3. Objetivo do projeto
 
 O SDIP é uma aplicação desktop em Python para automatizar:
 
@@ -92,7 +162,7 @@ O sistema foi criado para permitir que pesquisas em papel sejam convertidas em d
 
 ---
 
-# 3. Tecnologias atuais
+# 4. Tecnologias atuais
 
 Ambiente principal:
 
@@ -134,7 +204,7 @@ Ela utiliza Google Apps Script publicado como Web App.
 
 ---
 
-# 4. Estrutura principal
+# 5. Estrutura principal
 
 ```text
 SDIP/
@@ -156,17 +226,24 @@ SDIP/
 │   ├── form_panel.py
 │   └── viewer.py
 │
-├── config/
+├── docs/
+│   ├── MANUAL_USUARIO_SDIP.pdf
+│   └── manual_rapido_sdip.png
+│
 ├── area_omr.py
 ├── app.py
+├── MANUAL_USUARIO.md
+├── documentacao.md
+├── CONTINUIDADE.md
 ├── requirements.txt
-├── README.md
-└── CONTINUIDADE.md
+└── README.md
 ```
+
+A pasta antiga `config/` não faz mais parte da arquitetura atual.
 
 ---
 
-# 5. Regra de desenvolvimento durante estabilização
+# 6. Regra de desenvolvimento durante estabilização
 
 Até concluir os testes reais do MVP:
 
@@ -187,9 +264,11 @@ Não realizar agora:
 * troca de soluções já validadas;
 * otimizações sem problema demonstrado.
 
+A limpeza do mapeamento OMR legado foi uma exceção deliberada e limitada, porque os arquivos haviam sido comprovadamente substituídos pela arquitetura atual e todos os usos foram verificados antes da remoção.
+
 ---
 
-# 6. Componentes críticos protegidos
+# 7. Componentes críticos protegidos
 
 Os arquivos abaixo formam o núcleo físico já validado:
 
@@ -199,7 +278,7 @@ engine/geometria.py
 engine/omr.py
 ```
 
-Eles não devem ser modificados antes dos testes reais, exceto se existir um bug reproduzível.
+Eles não devem ser modificados antes dos testes reais, exceto se existir um bug reproduzível ou uma alteração mínima previamente verificada e autorizada.
 
 Parâmetros OMR atualmente validados:
 
@@ -229,7 +308,113 @@ OpenCV validado:
 
 ---
 
-# 7. Validação física já realizada
+# 8. Arquitetura atual do mapa OMR
+
+Cada ficha possui seu próprio mapa:
+
+```text
+fichas/
+└── <ficha_id>/
+    └── mapa_omr.json
+```
+
+O fluxo atual passa o caminho do mapa explicitamente.
+
+Em `engine/omr.py`, o construtor passou de:
+
+```python
+def __init__(
+    self,
+    mapa_path="config/mapa_caixas.json",
+    margem=7
+):
+```
+
+para:
+
+```python
+def __init__(
+    self,
+    mapa_path,
+    margem=7
+):
+```
+
+Todas as chamadas encontradas de `OMRReader` fornecem `mapa_path`.
+
+Foram verificadas chamadas em:
+
+```text
+engine/leitor.py
+teste_omr_2.py
+teste_omr_margem7.py
+```
+
+Não reintroduzir um mapa global padrão.
+
+---
+
+# 9. Limpeza da arquitetura OMR antiga
+
+Arquivos removidos:
+
+```text
+config/mapa_caixas.json
+config/mapa_caixas_gerado.json
+```
+
+## `config/mapa_caixas.json`
+
+Era um mapa global/manual proveniente da arquitetura antiga.
+
+O fluxo atual não o utilizava.
+
+A aplicação foi executada e testada depois da remoção.
+
+Resultados:
+
+```text
+Onde devo marcar? → OK
+OMR               → OK
+Salvamento        → OK
+```
+
+## `config/mapa_caixas_gerado.json`
+
+Era utilizado apenas como saída do script de teste:
+
+```text
+teste_gerador_ficha.py
+```
+
+O destino foi alterado para:
+
+```text
+temp/mapa_caixas_gerado.json
+```
+
+O script foi executado depois da alteração.
+
+Resultado:
+
+```text
+TESTE CONCLUÍDO
+
+Páginas geradas:
+- temp\ficha_teste_layout_1.png
+
+Mapa OMR gerado:
+- temp/mapa_caixas_gerado.json
+
+Quantidade de páginas: 1
+Caixas OMR registradas: 50
+```
+
+A referência utilizada por `teste_omr_margem7.py` já apontava para `temp/`.
+
+---
+
+# 10. Validação física já realizada
 
 ## Ficha branca de duas páginas
 
@@ -263,7 +448,7 @@ Esses resultados não substituem a nova validação nas máquinas e no fluxo rea
 
 ---
 
-# 8. Criação de pesquisas
+# 11. Criação de pesquisas
 
 O editor permite configurar:
 
@@ -297,7 +482,7 @@ O sistema gera automaticamente:
 
 ---
 
-# 9. Rascunho, produção e versão
+# 12. Rascunho, produção e versão
 
 Fluxo conceitual:
 
@@ -329,7 +514,7 @@ A nova versão:
 
 ---
 
-# 10. Planilha XLSX
+# 13. Planilha XLSX
 
 O destino local continua disponível.
 
@@ -358,7 +543,7 @@ A ficha é a fonte de verdade da estrutura tabular.
 
 ---
 
-# 11. Google Sheets
+# 14. Google Sheets
 
 Integração implementada através de:
 
@@ -405,7 +590,7 @@ Não depende de faturamento do Google Cloud.
 
 ---
 
-# 12. Proteção da estrutura do Google Sheets
+# 15. Proteção da estrutura do Google Sheets
 
 Antes do salvamento, o SDIP compara:
 
@@ -433,7 +618,7 @@ Esse comportamento já foi testado alterando propositalmente cabeçalhos.
 
 ---
 
-# 13. Uso em vários computadores
+# 16. Uso em vários computadores
 
 O Google Sheets permite:
 
@@ -451,7 +636,7 @@ Ainda precisa ser validado em máquinas físicas diferentes no ambiente de traba
 
 ---
 
-# 14. Pacotes .sdip
+# 17. Pacotes `.sdip`
 
 Foi implementada exportação/importação de pesquisas através do formato:
 
@@ -495,7 +680,7 @@ Também existem verificações contra:
 
 ---
 
-# 15. Campos manuais vazios
+# 18. Campos manuais vazios
 
 Antes de salvar, o SDIP verifica:
 
@@ -527,7 +712,7 @@ Perguntas OMR sem marcação não entram nessa confirmação.
 
 ---
 
-# 16. Datas
+# 19. Datas
 
 Campos configurados como data utilizam:
 
@@ -549,7 +734,7 @@ Campo de data vazio continua permitido mediante a confirmação de campos manuai
 
 ---
 
-# 17. Opção Manter
+# 20. Opção Manter
 
 Campos de identificação possuem:
 
@@ -581,7 +766,7 @@ Ela não altera:
 
 ---
 
-# 18. Nome automático do PDF
+# 21. Nome automático do PDF
 
 Durante a criação da pesquisa, campos de identificação podem receber:
 
@@ -623,7 +808,7 @@ arquivo_3.pdf
 
 ---
 
-# 19. Pasta dos PDFs processados
+# 22. Pasta dos PDFs processados
 
 Cada pesquisa possui uma pasta de destino configurada localmente em cada computador.
 
@@ -645,7 +830,9 @@ Se o destino estiver indisponível:
 
 ```text
 solicitar outro local
+
 ou
+
 cancelar
 ```
 
@@ -653,7 +840,7 @@ Nunca salvar silenciosamente em outro lugar.
 
 ---
 
-# 20. Segurança do salvamento
+# 23. Segurança do salvamento
 
 O salvamento combina:
 
@@ -673,9 +860,7 @@ Em caso de falha de persistência:
 
 ---
 
-# 21. Fila de múltiplos PDFs
-
-Última funcionalidade obrigatória do MVP implementada.
+# 24. Fila de múltiplos PDFs
 
 A seleção utiliza múltiplos arquivos:
 
@@ -687,7 +872,9 @@ Selecionar ficha(s) PDF
 
 ```text
 1 PDF
+
 ou
+
 vários PDFs
 ```
 
@@ -730,7 +917,7 @@ A fila só avança depois de um salvamento completo.
 
 ---
 
-# 22. Situações em que a fila não avança
+# 25. Situações em que a fila não avança
 
 Não avançar quando houver:
 
@@ -751,7 +938,7 @@ Fila concluída
 
 ---
 
-# 23. Interface
+# 26. Interface
 
 A interface foi reorganizada para notebooks e janelas menores.
 
@@ -786,7 +973,7 @@ O botão `Salvar resultado` permanece acessível na parte superior da área oper
 
 ---
 
-# 24. Visualizador
+# 27. Visualizador
 
 O visualizador suporta:
 
@@ -803,7 +990,7 @@ O arquivo `ui/viewer.py` pode ser revisado futuramente, mas **não deve ser refa
 
 ---
 
-# 25. Onde devo marcar?
+# 28. Onde devo marcar?
 
 A funcionalidade:
 
@@ -834,7 +1021,7 @@ area_omr.py
 
 ---
 
-# 26. Funcionalidades consideradas concluídas no MVP
+# 29. Funcionalidades consideradas concluídas no MVP
 
 ```text
 [x] geração automática de fichas
@@ -853,7 +1040,7 @@ area_omr.py
 [x] ArUco
 [x] homografia
 [x] normalização
-[x] mapa OMR
+[x] mapa OMR automático por ficha
 [x] leitura OMR
 [x] Onde devo marcar?
 [x] XLSX
@@ -874,21 +1061,32 @@ area_omr.py
 [x] avanço automático
 [x] proteção contra avanço em erro
 [x] interface adaptada para notebooks
+[x] manual do usuário
+[x] manual em PDF
+[x] guia visual rápido
+[x] remoção do mapeamento OMR global legado
 ```
 
 ---
 
-# 27. Testes ainda obrigatórios
+# 30. Testes ainda obrigatórios
 
 O MVP está funcionalmente implementado, mas ainda precisa ser validado no ambiente real.
 
-## Máquinas do trabalho
-
-Testar:
+## Distribuição Windows
 
 ```text
-[ ] instalar/executar build em máquina diferente
-[ ] executar sem Python instalado
+[ ] instalar PyInstaller no novo .venv
+[ ] gerar nova build com --noupx
+[ ] analisar novo executável
+[ ] confirmar que a build é adequada para distribuição
+[ ] testar ZIP extraído em pasta diferente
+[ ] executar em máquina sem Python instalado
+```
+
+## Máquinas do trabalho
+
+```text
 [ ] importar .sdip
 [ ] fechar e abrir novamente
 [ ] Google Sheets continuar vinculado
@@ -946,36 +1144,35 @@ Testar:
 
 ---
 
-# 28. Próximas etapas imediatas
+# 31. Próximas etapas imediatas
 
 A sequência atual é:
 
 ```text
-1. atualizar CONTINUIDADE.md
-2. remover README_ANTIGO.md
-3. salvar documentação no Git
-4. gerar build Windows
-5. testar localmente
-6. compactar build
-7. disponibilizar como Release de teste
-8. baixar na máquina do trabalho
-9. executar checklist real
-10. corrigir somente bugs comprovados
-11. gerar build estável
-12. publicar Release estável
+1. concluir a limpeza documental atual
+2. revisar git diff e git status
+3. registrar a limpeza do mapeamento legado em commit
+4. enviar o commit para origin/main
+5. confirmar ambiente virtual limpo
+6. instalar PyInstaller
+7. gerar nova build Windows com --noupx
+8. analisar o novo executável antes da distribuição
+9. testar a build localmente
+10. compactar a pasta dist/SDIP/
+11. testar o ZIP extraído
+12. somente então criar Release de teste
+13. baixar na máquina do trabalho
+14. executar checklist real
+15. corrigir somente bugs comprovados
+16. gerar build estável
+17. publicar Release estável
 ```
 
 ---
 
-# 29. Empacotamento Windows
+# 32. Empacotamento Windows
 
-PyInstaller instalado no ambiente atual:
-
-```text
-PyInstaller 6.22.2
-```
-
-A primeira distribuição será testada utilizando:
+A distribuição continuará utilizando inicialmente:
 
 ```text
 onedir
@@ -996,27 +1193,57 @@ O diretório inteiro deverá ser distribuído.
 
 Não copiar somente `SDIP.exe`.
 
-Comando inicial planejado:
+Nova tentativa planejada:
 
 ```powershell
-pyinstaller --noconfirm --clean --windowed --onedir --name SDIP --collect-all customtkinter app.py
+pyinstaller --noconfirm --clean --windowed --onedir --noupx --name SDIP --collect-all customtkinter app.py
 ```
 
-Esse comando ainda precisa ser executado e validado.
+Depois do build, copiar o manual:
 
-Antes do build, verificar se os artefatos do PyInstaller estão ignorados pelo Git:
-
-```text
-build/
-dist/
-*.spec
+```powershell
+Copy-Item .\docs\MANUAL_USUARIO_SDIP.pdf .\dist\SDIP\
 ```
 
-A decisão sobre manter ou versionar um `.spec` definitivo pode ser tomada depois que a configuração de empacotamento estiver validada.
+Verificar hash:
+
+```powershell
+Get-FileHash .\dist\SDIP\SDIP.exe -Algorithm SHA256
+```
+
+Não distribuir um executável que ainda esteja sob dúvida de segurança.
 
 ---
 
-# 30. GitHub Release
+# 33. Primeira build descartada
+
+A primeira build:
+
+* foi gerada com PyInstaller;
+* utilizou `onedir`;
+* abriu localmente;
+* funcionou quando compactada e extraída;
+* não chegou a ser publicada.
+
+Durante a análise, alguns mecanismos apresentaram detecções heurísticas/genéricas.
+
+A decisão foi:
+
+```text
+não liberar
+não ignorar o alerta
+não criar exceção apenas para executar
+descartar a build
+recriar o ambiente
+gerar nova build
+reanalisar
+```
+
+O código-fonte obtido novamente do GitHub permaneceu como base confiável para a nova tentativa.
+
+---
+
+# 34. GitHub Release
 
 O Release é diferente do executável.
 
@@ -1028,7 +1255,7 @@ GitHub Release
 → forma de distribuir uma versão desse programa
 ```
 
-Fluxo planejado:
+Fluxo:
 
 ```text
 código
@@ -1036,6 +1263,8 @@ código
 PyInstaller
     ↓
 dist/SDIP/
+    ↓
+análise da build
     ↓
 teste local
     ↓
@@ -1050,7 +1279,7 @@ Somente depois da validação real deverá ser publicada uma versão considerada
 
 ---
 
-# 31. Repositórios
+# 35. Repositórios
 
 Estratégia:
 
@@ -1071,7 +1300,7 @@ O repositório institucional não precisa acompanhar cada commit do desenvolvime
 
 ---
 
-# 32. Segurança e dados
+# 36. Segurança e dados
 
 Nunca publicar:
 
@@ -1089,7 +1318,7 @@ A chave de integração do Google Sheets deve ser tratada como informação oper
 
 ---
 
-# 33. Autoria e distribuição
+# 37. Autoria e distribuição
 
 O SDIP foi desenvolvido por **Diogo Barbosa**.
 
@@ -1109,7 +1338,7 @@ Não utilizar licença permissiva automaticamente sem uma decisão explícita so
 
 ---
 
-# 34. Itens posteriores ao MVP
+# 38. Itens posteriores ao MVP
 
 Não são prioridade durante a validação atual:
 
@@ -1127,7 +1356,7 @@ Não são prioridade durante a validação atual:
 
 ---
 
-# 35. Regra de correção
+# 39. Regra de correção
 
 Durante os testes:
 
@@ -1155,7 +1384,7 @@ Nunca modificar o núcleo apenas por suspeita.
 
 ---
 
-# 36. Workflow para alterações de código
+# 40. Workflow para alterações de código
 
 Antes de gerar código:
 
@@ -1170,88 +1399,125 @@ Depois da autorização:
 2. gerar arquivos completos quando a alteração for relevante;
 3. evitar blocos parciais que possam causar substituições incorretas;
 4. não modificar áreas fora do escopo;
-5. testar;
-6. registrar o resultado;
-7. fazer commit quando aprovado.
+5. testar a mudança;
+6. revisar o diff;
+7. registrar em commit.
 
 ---
 
-# 37. Encerramento de sessão
+# 41. Regra para arquivos críticos
 
-Antes de encerrar uma etapa importante:
+Não alterar sem problema comprovado:
+
+```text
+engine/gerador_ficha.py
+engine/geometria.py
+engine/omr.py
+```
+
+Exceções precisam ser:
+
+* pequenas;
+* justificadas;
+* verificadas contra todos os usos;
+* testadas antes e depois;
+* registradas claramente.
+
+A alteração atual em `engine/omr.py` atende a esses critérios porque removeu somente o fallback para um mapa antigo comprovadamente não utilizado.
+
+---
+
+# 42. Testes regressivos mantidos
+
+Depois da limpeza de testes obsoletos, continuam relevantes:
+
+```text
+teste_gerador_ficha.py
+teste_omr_2.py
+teste_omr_margem7.py
+```
+
+O `teste_gerador_ficha.py` agora escreve seu mapa de teste em:
+
+```text
+temp/mapa_caixas_gerado.json
+```
+
+O diretório `temp/` não faz parte da arquitetura permanente do produto.
+
+---
+
+# 43. Estado de retomada — 03/09/2026
+
+Ao retomar o projeto, verificar primeiro:
 
 ```powershell
 git status
+git log --oneline -5
 ```
 
-Se aprovado:
-
-```powershell
-git add ...
-git commit -m "..."
-git push
-```
-
-Depois:
-
-```powershell
-git status
-```
-
-Estado ideal:
+As alterações atuais esperadas antes do próximo commit são:
 
 ```text
-nothing to commit, working tree clean
+deleted:    config/mapa_caixas.json
+deleted:    config/mapa_caixas_gerado.json
+modified:   engine/omr.py
+modified:   teste_gerador_ficha.py
+modified:   README.md
+modified:   documentacao.md
+modified:   CONTINUIDADE.md
+```
+
+Antes do commit:
+
+1. executar `git diff --stat`;
+2. conferir que não existem mudanças fora do escopo;
+3. executar uma última busca por referências antigas;
+4. confirmar que o aplicativo continua abrindo;
+5. somente então registrar a limpeza.
+
+Mensagem de commit sugerida:
+
+```text
+Remove residuos do mapeamento OMR legado
+```
+
+Como o repositório local foi reconectado ao remoto depois de um Download ZIP, confirmar o upstream.
+
+Se necessário:
+
+```powershell
+git push -u origin main
 ```
 
 ---
 
-# 38. Ponto exato de retomada
+# 44. Ponto exato atual
 
-Estado em **02/09/2026**:
+O MVP funcional está implementado.
 
-```text
-MVP funcional implementado
-        ↓
-item de fila de PDFs validado
-        ↓
-README atualizado
-        ↓
-código enviado ao GitHub
-        ↓
-PyInstaller 6.22.2 instalado
-        ↓
-CONTINUIDADE sendo atualizada
-        ↓
-próximo passo:
-GERAR O EXECUTÁVEL DE TESTE
-```
+A arquitetura antiga de mapas OMR globais foi removida e funcionalmente validada.
 
-Antes de executar o PyInstaller:
+A primeira build Windows foi descartada antes de qualquer Release após apresentar detecções heurísticas que exigem nova validação.
+
+O código-fonte atual foi recuperado novamente a partir do GitHub e está sendo utilizado em ambiente virtual novo.
+
+O próximo marco é:
 
 ```text
-1. remover README_ANTIGO.md
-2. salvar CONTINUIDADE.md
-3. verificar .gitignore
-4. garantir git status limpo
+fechar a limpeza atual no Git
+        ↓
+gerar nova build Windows
+        ↓
+validar segurança
+        ↓
+testar localmente
+        ↓
+Release de teste
+        ↓
+teste real no trabalho
 ```
 
-Depois:
+Até concluir essa etapa, manter a regra:
 
-```text
-gerar build
-→ testar SDIP.exe
-→ compactar pasta
-→ GitHub Release de teste
-→ testes nas máquinas do trabalho
-```
-
-Não iniciar novas funcionalidades antes dessa validação.
-
----
-
-# Autor
-
-**Diogo Barbosa**
-
-SDIP — Sistema de Digitalização Inteligente de Pesquisas
+**nenhuma refatoração ampla e nenhuma alteração no núcleo sem um problema reproduzível.**

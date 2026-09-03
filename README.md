@@ -18,6 +18,14 @@ Para detalhes sobre arquitetura, funcionamento interno, calibração do OMR, dec
 
 [Documentação técnica do SDIP](documentacao.md)
 
+Para uso operacional do sistema:
+
+* [Manual do usuário](MANUAL_USUARIO.md)
+* [Manual do usuário em PDF](docs/MANUAL_USUARIO_SDIP.pdf)
+* [Guia visual rápido](docs/manual_rapido_sdip.png)
+
+---
+
 # Fluxo principal
 
 ```text
@@ -181,7 +189,6 @@ Exemplo:
 Data:          02/09/2026    [✓ Manter]
 Entrevistador: João          [✓ Manter]
 Setor:         Financeiro    [✓ Manter]
-
 Nome:          Maria         [ ]
 Matrícula:     12345         [ ]
 ```
@@ -192,7 +199,6 @@ Depois de salvar:
 Data          → permanece
 Entrevistador → permanece
 Setor         → permanece
-
 Nome          → é limpo
 Matrícula     → é limpa
 ```
@@ -394,56 +400,11 @@ Nesse caso, o PDF atual permanece disponível para correção.
 
 Depois que a última ficha é salva, o sistema informa a conclusão da fila.
 
-```text
-Fila concluída.
-15 arquivos foram processados.
-```
-
----
-
-# Fluxo operacional de várias fichas
-
-Com as funções de fila, `Manter` e arquivamento automático, o fluxo operacional pode ser:
-
-```text
-Selecionar 30 PDFs
-      ↓
-Arquivo 1 de 30
-      ↓
-Ler OMR
-      ↓
-Conferir
-      ↓
-Manter Data e Entrevistador
-      ↓
-Salvar
-      ↓
-Dados enviados
-      ↓
-PDF arquivado
-      ↓
-Arquivo 2 de 30 carregado automaticamente
-      ↓
-Data e Entrevistador permanecem
-      ↓
-Ler OMR
-      ↓
-...
-      ↓
-Arquivo 30 de 30
-      ↓
-Salvar
-      ↓
-Fila concluída
-```
-
 ---
 
 # Segurança do salvamento
 
 O fluxo foi projetado para reduzir a possibilidade de perda silenciosa ou inconsistência.
-
-O resultado somente é considerado concluído depois das etapas obrigatórias.
 
 Em caso de erro:
 
@@ -472,13 +433,10 @@ A tela utiliza duas áreas lado a lado:
 │ Logo                   │ Opções                       │
 │ Fonte                  │                              │
 │ Identificação          │                              │
-│                        │                              │
 └────────────────────────┴──────────────────────────────┘
 ```
 
 As áreas podem ser redimensionadas pelo usuário.
-
----
 
 ## Digitalizar / Preencher
 
@@ -488,7 +446,7 @@ A ficha e os campos são exibidos simultaneamente:
 ┌────────────────────────┬──────────────────────────────┐
 │                        │ Ações                        │
 │                        │                              │
-│          PDF           │ Identificação               │
+│          PDF           │ Identificação                │
 │                        │                              │
 │                        │ Respostas abertas            │
 │                        │                              │
@@ -496,7 +454,7 @@ A ficha e os campos são exibidos simultaneamente:
 └────────────────────────┴──────────────────────────────┘
 ```
 
-O divisor entre as áreas também pode ser movimentado com o mouse.
+O divisor entre as áreas pode ser movimentado com o mouse.
 
 ---
 
@@ -587,7 +545,7 @@ Resolução normalizada:
 
 # Mapa OMR
 
-O mapa OMR é criado automaticamente junto com a ficha.
+O mapa OMR é criado automaticamente junto com cada ficha.
 
 Cada caixa contém informações como:
 
@@ -613,6 +571,19 @@ Cada ficha possui seu próprio mapa.
 
 O PDF e o mapa correspondente devem permanecer associados.
 
+A arquitetura atual **não utiliza um mapa OMR global ou manual dentro de `config/`**.
+
+A antiga estrutura:
+
+```text
+config/mapa_caixas.json
+config/mapa_caixas_gerado.json
+```
+
+foi removida após confirmação de que não participava mais do fluxo atual.
+
+O leitor OMR recebe explicitamente o `mapa_path` correspondente à ficha utilizada.
+
 ---
 
 # Resultado final
@@ -631,7 +602,9 @@ O resultado pode ser armazenado em:
 
 ```text
 Planilha XLSX local
+
 ou
+
 Google Sheets compartilhado
 ```
 
@@ -693,22 +666,6 @@ O próprio SDIP gera:
 * código do Apps Script;
 * estrutura esperada dos cabeçalhos.
 
-Fluxo:
-
-```text
-Criar Google Sheet
-      ↓
-Abrir Extensões → Apps Script
-      ↓
-Copiar código gerado pelo SDIP
-      ↓
-Implantar como Web App
-      ↓
-Copiar URL /exec
-      ↓
-Vincular no SDIP
-```
-
 Depois da configuração, a pesquisa pode enviar registros diretamente para a planilha compartilhada.
 
 ---
@@ -740,8 +697,6 @@ Isso reduz o risco de gravar respostas em colunas incorretas.
 # Uso em vários computadores
 
 Uma mesma pesquisa pode ser instalada em computadores diferentes.
-
-Exemplo:
 
 ```text
 Máquina A ─┐
@@ -785,20 +740,6 @@ Exemplos:
 ```text
 caminho do XLSX local
 pasta local dos PDFs processados
-```
-
-Fluxo:
-
-```text
-Computador A
-      ↓
-Exportar pesquisa.sdip
-      ↓
-Computador B
-      ↓
-Importar
-      ↓
-Mesma estrutura da pesquisa
 ```
 
 O pacote possui verificações de integridade para detectar arquivos inválidos, alterados ou corrompidos.
@@ -879,8 +820,6 @@ As páginas são corrigidas geometricamente antes da leitura OMR.
 
 # Validação física
 
-O núcleo OMR já passou por testes físicos.
-
 ## Ficha branca
 
 Teste com duas páginas:
@@ -896,8 +835,6 @@ Resultado:
 ```text
 0 falsos positivos
 ```
-
----
 
 ## Teste com marcações
 
@@ -963,13 +900,20 @@ SDIP/
 │   ├── form_panel.py
 │   └── viewer.py
 │
-├── config/
+├── docs/
+│   ├── MANUAL_USUARIO_SDIP.pdf
+│   └── manual_rapido_sdip.png
 │
 ├── area_omr.py
 ├── app.py
+├── MANUAL_USUARIO.md
+├── documentacao.md
+├── CONTINUIDADE.md
 ├── requirements.txt
 └── README.md
 ```
+
+A antiga pasta `config/`, utilizada nas primeiras versões para mapas globais de caixas OMR, foi removida. A versão atual mantém o mapa dentro da estrutura de cada ficha.
 
 ---
 
@@ -1051,7 +995,7 @@ A pasta `.venv/` é local e não deve ser enviada ao repositório.
 * [x] ArUco
 * [x] Homografia
 * [x] Normalização
-* [x] Mapa OMR automático
+* [x] Mapa OMR automático e próprio por ficha
 * [x] Leitura OMR
 * [x] Visualização das áreas OMR
 * [x] Geração e atualização de XLSX
@@ -1079,6 +1023,10 @@ A pasta `.venv/` é local e não deve ser enviada ao repositório.
 * [x] Painéis redimensionáveis
 * [x] Visualizador de PDF com zoom
 * [x] Scroll nas principais áreas da interface
+* [x] Manual de usuário em Markdown
+* [x] Manual de usuário em PDF
+* [x] Guia visual rápido
+* [x] Remoção da arquitetura legada de mapeamento manual/global
 
 ---
 
@@ -1086,11 +1034,18 @@ A pasta `.venv/` é local e não deve ser enviada ao repositório.
 
 O conjunto principal de funcionalidades previstas para o MVP foi implementado.
 
-A próxima etapa é validar o sistema em condições reais de trabalho.
+A etapa atual é validar o sistema em condições reais de trabalho e concluir uma distribuição Windows limpa antes do primeiro GitHub Release de teste.
+
+O fluxo funcional foi novamente validado localmente após a remoção da arquitetura antiga de mapas globais.
+
+O Release executável ainda **não foi publicado**.
 
 ## Testes pendentes
 
+* [ ] Gerar nova build Windows em ambiente virtual limpo
+* [ ] Verificar a nova build antes da distribuição
 * [ ] Executar o SDIP em diferentes máquinas
+* [ ] Testar o executável em máquina sem ambiente Python configurado
 * [ ] Importar a mesma pesquisa `.sdip` em mais de um computador
 * [ ] Confirmar persistência do Google Sheets após fechar e abrir o programa
 * [ ] Confirmar que caminhos locais não são transportados entre máquinas
@@ -1117,12 +1072,13 @@ A próxima etapa é validar o sistema em condições reais de trabalho.
 
 # Depois da validação
 
+* [ ] Registrar os resultados dos testes reais
+* [ ] Separar bugs comprovados de sugestões de melhoria
 * [ ] Corrigir somente bugs comprovados nos testes
-* [ ] Gerar versão estável
-* [ ] Empacotar aplicação em `.exe`
-* [ ] Testar o `.exe` em máquina sem ambiente Python configurado
-* [ ] Criar GitHub Release
-* [ ] Disponibilizar executável para download
+* [ ] Repetir os fluxos afetados pelas correções
+* [ ] Gerar build estável
+* [ ] Testar a build estável em outra máquina
+* [ ] Criar GitHub Release estável
 * [ ] Disponibilizar versão institucional estável
 
 ---

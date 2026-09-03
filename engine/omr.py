@@ -11,7 +11,7 @@ class OMRReader:
 
     def __init__(
         self,
-        mapa_path="config/mapa_caixas.json",
+        mapa_path,
         margem=7
     ):
         self.mapa_path = mapa_path
